@@ -1,12 +1,17 @@
-
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
+
+import 'app_theme.dart';
+import 'navegacion_glass.dart';
+import 'notificaciones.dart';
+import 'perfil.dart';
 
 const azulTec = Color(0xFF083D91);
 const azulBrillante = Color(0xFF2868ED);
@@ -38,33 +43,17 @@ Color colorCategoria(String categoria) {
   }
 }
 
-void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  runApp(const CalendarioApp());
-}
-
-class CalendarioApp extends StatelessWidget {
-  const CalendarioApp({super.key});
+/// Oculta las barras de desplazamiento sin desactivar el scroll.
+class ScrollBehaviorInvisible extends MaterialScrollBehavior {
+  const ScrollBehaviorInvisible();
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Calendario TEC',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        fontFamily: 'Roboto',
-        scaffoldBackgroundColor: fondoCalendario,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: azulTec,
-          primary: azulTec,
-          secondary: azulBrillante,
-          surface: Colors.white,
-        ),
-        splashFactory: InkSparkle.splashFactory,
-      ),
-      home: const CalendarioPage(),
-    );
+  Widget buildScrollbar(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child;
   }
 }
 
@@ -97,7 +86,7 @@ class Evento {
   factory Evento.fromJson(Map<String, dynamic> json) => Evento(
         id: json['id']?.toString() ??
             DateTime.now().microsecondsSinceEpoch.toString(),
-        titulo: json['titulo']?.toString() ?? 'Evento',
+        titulo: json['titulo']?.toString() ?? 'Actividad',
         descripcion: json['descripcion']?.toString() ?? '',
         fecha: DateTime.tryParse(json['fecha']?.toString() ?? '') ??
             DateTime.now(),
@@ -109,31 +98,72 @@ class Evento {
 }
 
 class CalendarioPage extends StatefulWidget {
-  const CalendarioPage({super.key});
+  final bool embedded;
+  final VoidCallback? onBack;
+  final ValueChanged<int>? onSectionSelected;
+
+  const CalendarioPage({
+    super.key,
+    this.embedded = false,
+    this.onBack,
+    this.onSectionSelected,
+  });
 
   @override
   State<CalendarioPage> createState() => _CalendarioPageState();
 }
 
 class _CalendarioPageState extends State<CalendarioPage>
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   static const String _clave = 'calendario_eventos_v2';
 
   final FlutterLocalNotificationsPlugin _notificaciones =
       FlutterLocalNotificationsPlugin();
 
+  final TextEditingController _busqueda = TextEditingController();
+
   List<Evento> _eventos = [];
 
-  DateTime _mesVisible = DateTime(DateTime.now().year, DateTime.now().month);
+  DateTime _mesVisible = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+  );
+
   DateTime _seleccionada = DateUtils.dateOnly(DateTime.now());
 
   String _filtro = 'Todos';
+  String _consulta = '';
+
   bool _cargando = true;
   bool _notificacionesActivas = false;
 
+  void _seleccionarSeccion(int index) {
+    if (widget.onSectionSelected != null) {
+      widget.onSectionSelected!(index);
+      return;
+    }
+
+    if (index == 1) return;
+
+    if (index == 0) {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+      return;
+    }
+
+    Navigator.of(context).push(
+      appPageRoute<void>(
+        builder: (context) => index == 2
+            ? const NotificacionesScreen()
+            : const PerfilPage(),
+      ),
+    );
+  }
+
   late final AnimationController _entrada = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 850),
+    duration: const Duration(milliseconds: 650),
   );
 
   @override
@@ -145,16 +175,25 @@ class _CalendarioPageState extends State<CalendarioPage>
   @override
   void dispose() {
     _entrada.dispose();
+    _busqueda.dispose();
     super.dispose();
   }
 
   Future<void> _inicializar() async {
     await _iniciarNotificaciones();
     await _cargarEventos();
-    if (mounted) _entrada.forward();
+
+    if (mounted) {
+      _entrada.forward();
+    }
   }
 
   Future<void> _iniciarNotificaciones() async {
+    if (kIsWeb) {
+      _notificacionesActivas = false;
+      return;
+    }
+
     try {
       tz_data.initializeTimeZones();
       tz.setLocalLocation(tz.getLocation('America/Costa_Rica'));
@@ -164,29 +203,38 @@ class _CalendarioPageState extends State<CalendarioPage>
         iOS: DarwinInitializationSettings(),
       );
 
-      await _notificaciones.initialize(settings: ajustes);
+      await _notificaciones.initialize(ajustes);
 
       final android = _notificaciones
           .resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin>();
+
       await android?.requestNotificationsPermission();
 
       final ios = _notificaciones
           .resolvePlatformSpecificImplementation<
               IOSFlutterLocalNotificationsPlugin>();
-      await ios?.requestPermissions(alert: true, badge: true, sound: true);
+
+      await ios?.requestPermissions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
 
       _notificacionesActivas = true;
     } catch (e) {
+      _notificacionesActivas = false;
       debugPrint('Error iniciando notificaciones: $e');
     }
   }
 
   int _idAviso(Evento evento) {
     var hash = 0x811C9DC5;
+
     for (final unidad in evento.id.codeUnits) {
       hash = ((hash ^ unidad) * 0x01000193) & 0x7FFFFFFF;
     }
+
     return hash;
   }
 
@@ -207,11 +255,10 @@ class _CalendarioPageState extends State<CalendarioPage>
         minuto,
       );
 
-      // Aviso automático dos días antes.
       final aviso = inicio.subtract(const Duration(days: 2));
       final id = _idAviso(evento);
 
-      await _notificaciones.cancel(id: id);
+      await _notificaciones.cancel(id);
 
       if (!aviso.isAfter(DateTime.now())) return;
 
@@ -228,12 +275,13 @@ class _CalendarioPageState extends State<CalendarioPage>
       );
 
       await _notificaciones.zonedSchedule(
-        id: id,
-        title: 'Recordatorio: ${evento.titulo}',
-        body: 'Tu actividad es el ${_fechaCorta(evento.fecha)} '
-            'a las ${evento.hora}.',
-        scheduledDate: tz.TZDateTime.from(aviso, tz.local),
-        notificationDetails: detalles,
+        id,
+        evento.titulo,
+        evento.descripcion.isNotEmpty
+            ? evento.descripcion
+            : 'Tenés una actividad académica próximamente.',
+        tz.TZDateTime.from(aviso, tz.local),
+        detalles,
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       );
     } catch (e) {
@@ -243,8 +291,9 @@ class _CalendarioPageState extends State<CalendarioPage>
 
   Future<void> _cancelarAviso(Evento evento) async {
     if (!_notificacionesActivas) return;
+
     try {
-      await _notificaciones.cancel(id: _idAviso(evento));
+      await _notificaciones.cancel(_idAviso(evento));
     } catch (e) {
       debugPrint('Error cancelando aviso: $e');
     }
@@ -257,15 +306,21 @@ class _CalendarioPageState extends State<CalendarioPage>
 
       if (datos != null) {
         final lista = jsonDecode(datos) as List<dynamic>;
+
         _eventos = lista
-            .map((e) => Evento.fromJson(Map<String, dynamic>.from(e as Map)))
+            .map(
+              (e) => Evento.fromJson(
+                Map<String, dynamic>.from(e as Map),
+              ),
+            )
             .toList();
       }
     } catch (e) {
-      debugPrint('Error cargando eventos: $e');
+      debugPrint('Error cargando actividades: $e');
     }
 
     if (!mounted) return;
+
     setState(() => _cargando = false);
 
     for (final evento in _eventos) {
@@ -276,14 +331,18 @@ class _CalendarioPageState extends State<CalendarioPage>
   Future<void> _guardarEventos() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+
       await prefs.setString(
         _clave,
         jsonEncode(_eventos.map((e) => e.toJson()).toList()),
       );
     } catch (e) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudieron guardar los eventos.')),
+        const SnackBar(
+          content: Text('No se pudieron guardar las actividades.'),
+        ),
       );
     }
   }
@@ -292,21 +351,37 @@ class _CalendarioPageState extends State<CalendarioPage>
       a.year == b.year && a.month == b.month && a.day == b.day;
 
   String _nombreMes(int mes) => const [
-        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+        'Enero',
+        'Febrero',
+        'Marzo',
+        'Abril',
+        'Mayo',
+        'Junio',
+        'Julio',
+        'Agosto',
+        'Septiembre',
+        'Octubre',
+        'Noviembre',
+        'Diciembre',
       ][mes - 1];
-
-  String _fechaCorta(DateTime fecha) =>
-      '${fecha.day.toString().padLeft(2, '0')}/'
-      '${fecha.month.toString().padLeft(2, '0')}/${fecha.year}';
 
   String _fechaLarga(DateTime fecha) =>
       '${fecha.day} de ${_nombreMes(fecha.month)} de ${fecha.year}';
 
   List<Evento> get _eventosDelDia {
-    final resultado = _eventos.where((e) =>
-        _mismoDia(e.fecha, _seleccionada) &&
-        (_filtro == 'Todos' || e.categoria == _filtro)).toList();
+    final resultado = _eventos.where((e) {
+      final coincideDia = _mismoDia(e.fecha, _seleccionada);
+      final coincideCategoria =
+          _filtro == 'Todos' || e.categoria == _filtro;
+
+      final texto =
+          '${e.titulo} ${e.descripcion} ${e.categoria}'.toLowerCase();
+
+      final coincideTexto = texto.contains(_consulta.toLowerCase());
+
+      return coincideDia && coincideCategoria && coincideTexto;
+    }).toList();
+
     resultado.sort((a, b) => a.hora.compareTo(b.hora));
     return resultado;
   }
@@ -316,9 +391,14 @@ class _CalendarioPageState extends State<CalendarioPage>
 
   void _cambiarMes(int cambio) {
     setState(() {
-      _mesVisible = DateTime(_mesVisible.year, _mesVisible.month + cambio);
+      _mesVisible = DateTime(
+        _mesVisible.year,
+        _mesVisible.month + cambio,
+      );
+
       final maximo =
           DateTime(_mesVisible.year, _mesVisible.month + 1, 0).day;
+
       _seleccionada = DateTime(
         _mesVisible.year,
         _mesVisible.month,
@@ -329,10 +409,13 @@ class _CalendarioPageState extends State<CalendarioPage>
 
   void _irHoy() {
     final hoy = DateUtils.dateOnly(DateTime.now());
+
     setState(() {
       _seleccionada = hoy;
       _mesVisible = DateTime(hoy.year, hoy.month);
       _filtro = 'Todos';
+      _consulta = '';
+      _busqueda.clear();
     });
   }
 
@@ -342,7 +425,6 @@ class _CalendarioPageState extends State<CalendarioPage>
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      barrierColor: azulTec.withValues(alpha: 0.24),
       builder: (_) => FormularioEvento(
         evento: evento,
         fechaInicial: _seleccionada,
@@ -351,10 +433,13 @@ class _CalendarioPageState extends State<CalendarioPage>
 
     if (resultado == null || !mounted) return;
 
-    if (evento != null) await _cancelarAviso(evento);
+    if (evento != null) {
+      await _cancelarAviso(evento);
+    }
 
     setState(() {
       final indice = _eventos.indexWhere((e) => e.id == resultado.id);
+
       if (indice == -1) {
         _eventos.add(resultado);
       } else {
@@ -362,21 +447,26 @@ class _CalendarioPageState extends State<CalendarioPage>
       }
 
       _seleccionada = DateUtils.dateOnly(resultado.fecha);
-      _mesVisible = DateTime(resultado.fecha.year, resultado.fecha.month);
+      _mesVisible = DateTime(
+        resultado.fecha.year,
+        resultado.fecha.month,
+      );
     });
 
     await _guardarEventos();
     await _programarAviso(resultado);
 
     if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: azulTec,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        content: Text(evento == null
-            ? 'Actividad guardada correctamente'
-            : 'Actividad actualizada correctamente'),
+        content: Text(
+          evento == null
+              ? 'Actividad guardada correctamente'
+              : 'Actividad actualizada correctamente',
+        ),
       ),
     );
   }
@@ -385,7 +475,6 @@ class _CalendarioPageState extends State<CalendarioPage>
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
         title: const Text('Eliminar actividad'),
         content: Text('¿Deseás eliminar "${evento.titulo}"?'),
         actions: [
@@ -394,7 +483,9 @@ class _CalendarioPageState extends State<CalendarioPage>
             child: const Text('Cancelar'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: rojoTec),
+            style: FilledButton.styleFrom(
+              backgroundColor: rojoTec,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Eliminar'),
           ),
@@ -403,74 +494,150 @@ class _CalendarioPageState extends State<CalendarioPage>
     );
 
     if (confirmar != true || !mounted) return;
+
     await _cancelarAviso(evento);
-    setState(() => _eventos.removeWhere((e) => e.id == evento.id));
+
+    setState(() {
+      _eventos.removeWhere((e) => e.id == evento.id);
+    });
+
     await _guardarEventos();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBody: true,
-      backgroundColor: fondoCalendario,
-      body: Stack(
-        children: [
-          const Positioned.fill(child: _FondoLiquidGlass()),
-          SafeArea(
-            bottom: false,
-            child: _cargando
-                ? const Center(
-                    child: CircularProgressIndicator(color: azulBrillante),
-                  )
-                : LayoutBuilder(
-                    builder: (context, constraints) {
-                      final ancho = constraints.maxWidth;
-                      final escritorio = ancho >= 850;
+    return ScrollConfiguration(
+      behavior: const ScrollBehaviorInvisible(),
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        extendBody: true,
+        body: Stack(
+          children: [
+            const Positioned.fill(
+              child: _FondoLiquidGlass(),
+            ),
+            SafeArea(
+              bottom: false,
+              child: _cargando
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: azulBrillante,
+                      ),
+                    )
+                  : LayoutBuilder(
+                      builder: (context, constraints) {
+                        final ancho = constraints.maxWidth;
 
-                      return Column(
-                        children: [
-                          _construirAppBar(),
-                          Expanded(
-                            child: escritorio
-                                ? Center(
-                                    child: ConstrainedBox(
-                                      constraints: const BoxConstraints(
-                                          maxWidth: 1200),
-                                      child: Row(
+                        // Solo se usan dos columnas cuando realmente hay
+                        // suficiente espacio horizontal para ambas.
+                        // Los teléfonos, incluso en horizontal, conservan
+                        // una única columna con desplazamiento vertical.
+                        final ladoALado = ancho >= 900;
+
+                        return Column(
+                          children: [
+                            _construirAppBar(),
+                            Expanded(
+                              child: ladoALado
+                                  ? Center(
+                                      child: ConstrainedBox(
+                                        constraints:
+                                            const BoxConstraints(
+                                          maxWidth: 1400,
+                                        ),
+                                        child: LayoutBuilder(
+                                          builder: (context, interno) {
+                                            final disponible =
+                                                interno.maxWidth;
+
+                                            final anchoCalendario =
+                                                (disponible * .44)
+                                                    .clamp(320.0, 520.0)
+                                                    .toDouble();
+
+                                            return Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                SizedBox(
+                                                  width: anchoCalendario,
+                                                  child:
+                                                      SingleChildScrollView(
+                                                    physics:
+                                                        const BouncingScrollPhysics(),
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                      bottom: 24,
+                                                    ),
+                                                    child:
+                                                        _construirCalendario(),
+                                                  ),
+                                                ),
+                                                Expanded(
+                                                  child: _construirAgenda(),
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    )
+                                  : SingleChildScrollView(
+                                      primary: false,
+                                      physics:
+                                          const BouncingScrollPhysics(
+                                        parent:
+                                            AlwaysScrollableScrollPhysics(),
+                                      ),
+                                      keyboardDismissBehavior:
+                                          ScrollViewKeyboardDismissBehavior
+                                              .onDrag,
+                                      padding: EdgeInsets.only(
+                                        bottom: MediaQuery.viewPaddingOf(
+                                                  context,
+                                                ).bottom +
+                                            110,
+                                      ),
+                                      child: Column(
                                         crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                            CrossAxisAlignment.stretch,
+                                        mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          SizedBox(
-                                            width: ancho.clamp(850, 1200) * .43,
-                                            child: _construirCalendario(),
+                                          _construirCalendario(),
+                                          _construirAgenda(
+                                            dentroDesplazamiento: true,
                                           ),
-                                          Expanded(child: _construirAgenda()),
                                         ],
                                       ),
                                     ),
-                                  )
-                                : Column(
-                                    children: [
-                                      _construirCalendario(),
-                                      Expanded(child: _construirAgenda()),
-                                    ],
-                                  ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 18),
-        child: _botonFlotante(
-          icono: Icons.add_rounded,
-          texto: 'Nuevo evento',
-          onTap: () => _abrirFormulario(),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+            ),
+          ],
         ),
+        floatingActionButton: Padding(
+          padding: EdgeInsets.only(bottom: widget.embedded ? 100 : 18),
+          child: FloatingActionButton.extended(
+            backgroundColor: azulTec,
+            foregroundColor: Colors.white,
+            elevation: 8,
+            onPressed: () => _abrirFormulario(),
+            icon: const Icon(Icons.add_rounded),
+            label: const Text(
+              'Nuevo evento',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+        ),
+        bottomNavigationBar: widget.embedded
+            ? null
+            : NavegacionGlass(
+                selectedIndex: 1,
+                onSelected: _seleccionarSeccion,
+              ),
       ),
     );
   }
@@ -480,23 +647,25 @@ class _CalendarioPageState extends State<CalendarioPage>
       padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
       child: Row(
         children: [
-          _glassButton(
-            icon: Icons.arrow_back_rounded,
-            onTap: () {
-              if (Navigator.of(context).canPop()) {
+          _botonCristal(
+            Icons.arrow_back_rounded,
+            () {
+              if (widget.onBack != null) {
+                widget.onBack!();
+              } else if (Navigator.of(context).canPop()) {
                 Navigator.of(context).pop();
               }
             },
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Mi calendario',
                   style: TextStyle(
-                    color: azulTec,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 23,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -.6,
@@ -506,7 +675,7 @@ class _CalendarioPageState extends State<CalendarioPage>
                 Text(
                   'ORGANIZÁ TU VIDA ACADÉMICA',
                   style: TextStyle(
-                    color: textoSecundario,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 9,
                     letterSpacing: 1.2,
                     fontWeight: FontWeight.w800,
@@ -515,7 +684,7 @@ class _CalendarioPageState extends State<CalendarioPage>
               ],
             ),
           ),
-          _glassButton(icon: Icons.today_rounded, onTap: _irHoy),
+          _botonCristal(Icons.today_rounded, _irHoy),
         ],
       ),
     );
@@ -525,176 +694,176 @@ class _CalendarioPageState extends State<CalendarioPage>
     final hoy = DateUtils.dateOnly(DateTime.now());
     final primero = DateTime(_mesVisible.year, _mesVisible.month, 1);
     final desplazamiento = primero.weekday - 1;
-    final diasMes = DateTime(_mesVisible.year, _mesVisible.month + 1, 0).day;
+    final diasMes =
+        DateTime(_mesVisible.year, _mesVisible.month + 1, 0).day;
     final totalCeldas = desplazamiento + diasMes <= 35 ? 35 : 42;
 
-    return _vidrio(
-      margen: const EdgeInsets.fromLTRB(14, 5, 14, 12),
-      radio: 30,
-      intensidad: 14,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 350),
-                        transitionBuilder: (child, animation) =>
-                            FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(.06, 0),
-                              end: Offset.zero,
-                            ).animate(animation),
-                            child: child,
-                          ),
-                        ),
-                        child: Text(
-                          '${_nombreMes(_mesVisible.month)} ${_mesVisible.year}',
-                          key: ValueKey(_mesVisible),
-                          style: const TextStyle(
-                            color: azulTec,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -.7,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${_eventos.length} actividades registradas',
-                        style: const TextStyle(
-                          color: textoSecundario,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                _glassButton(
-                  icon: Icons.chevron_left_rounded,
-                  onTap: () => _cambiarMes(-1),
-                ),
-                const SizedBox(width: 8),
-                _glassButton(
-                  icon: Icons.chevron_right_rounded,
-                  onTap: () => _cambiarMes(1),
-                ),
-              ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final ancho = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width;
+
+        final estrecho = ancho < 360;
+
+        return _vidrio(
+          margen: const EdgeInsets.fromLTRB(14, 5, 14, 12),
+          radio: 28,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              estrecho ? 12 : 18,
+              18,
+              estrecho ? 12 : 18,
+              16,
             ),
-            const SizedBox(height: 22),
-            Row(
-              children: ['L', 'M', 'X', 'J', 'V', 'S', 'D']
-                  .map((d) => Expanded(
-                        child: Center(
-                          child: Text(
-                            d,
-                            style: const TextStyle(
-                              color: textoSecundario,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 300),
+                            child: Text(
+                              '${_nombreMes(_mesVisible.month)} '
+                              '${_mesVisible.year}',
+                              key: ValueKey(_mesVisible),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
+                                fontSize: estrecho ? 20 : 23,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${_eventos.length} actividades registradas',
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                               fontSize: 11,
-                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    _botonCristal(
+                      Icons.chevron_left_rounded,
+                      () => _cambiarMes(-1),
+                    ),
+                    const SizedBox(width: 7),
+                    _botonCristal(
+                      Icons.chevron_right_rounded,
+                      () => _cambiarMes(1),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+                      .map(
+                        (d) => Expanded(
+                          child: Center(
+                            child: Text(
+                              d,
+                              style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
                           ),
                         ),
-                      ))
-                  .toList(),
-            ),
-            const SizedBox(height: 12),
-            AnimatedSize(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutCubic,
-              child: GridView.builder(
-                key: ValueKey('${_mesVisible.year}-${_mesVisible.month}'),
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: totalCeldas,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 7,
-                  crossAxisSpacing: 5,
-                  mainAxisSpacing: 6,
-                  childAspectRatio: .87,
+                      )
+                      .toList(),
                 ),
-                itemBuilder: (context, index) {
-                  final dia = index - desplazamiento + 1;
-                  if (dia < 1 || dia > diasMes) {
-                    return const SizedBox.shrink();
-                  }
+                const SizedBox(height: 10),
+                GridView.builder(
+                  key: ValueKey(
+                    '${_mesVisible.year}-${_mesVisible.month}',
+                  ),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: totalCeldas,
+                  gridDelegate:
+                      SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 7,
+                    crossAxisSpacing: estrecho ? 2 : 4,
+                    mainAxisSpacing: 5,
+                    childAspectRatio: estrecho ? 1.05 : .96,
+                  ),
+                  itemBuilder: (context, index) {
+                    final dia = index - desplazamiento + 1;
 
-                  final fecha =
-                      DateTime(_mesVisible.year, _mesVisible.month, dia);
-                  final seleccionado = _mismoDia(fecha, _seleccionada);
-                  final esHoy = _mismoDia(fecha, hoy);
-                  final eventos = _eventosDeFecha(fecha);
+                    if (dia < 1 || dia > diasMes) {
+                      return const SizedBox.shrink();
+                    }
 
-                  return _CeldaDia(
-                    dia: dia,
-                    seleccionado: seleccionado,
-                    esHoy: esHoy,
-                    eventos: eventos,
-                    onTap: () => setState(() => _seleccionada = fecha),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 14,
-              runSpacing: 9,
-              alignment: WrapAlignment.center,
-              children: [
-                _leyenda(rojoTec, 'Hoy'),
-                _leyenda(azulBrillante, 'Seleccionado'),
-                _leyenda(const Color(0xFF8051E8), 'Licenciatura'),
+                    final fecha = DateTime(
+                      _mesVisible.year,
+                      _mesVisible.month,
+                      dia,
+                    );
+
+                    return _CeldaDia(
+                      dia: dia,
+                      seleccionado: _mismoDia(fecha, _seleccionada),
+                      esHoy: _mismoDia(fecha, hoy),
+                      eventos: _eventosDeFecha(fecha),
+                      onTap: () {
+                        setState(() => _seleccionada = fecha);
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 13),
+                const Wrap(
+                  spacing: 14,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    _Leyenda(color: rojoTec, texto: 'Hoy'),
+                    _Leyenda(
+                      color: azulBrillante,
+                      texto: 'Seleccionado',
+                    ),
+                    _Leyenda(
+                      color: Color(0xFF8051E8),
+                      texto: 'Licenciatura',
+                    ),
+                  ],
+                ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _leyenda(Color color, String texto) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 7,
-          height: 7,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(color: color.withValues(alpha: .3), blurRadius: 5),
-            ],
-          ),
-        ),
-        const SizedBox(width: 5),
-        Text(
-          texto,
-          style: const TextStyle(
-            color: textoSecundario,
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _construirAgenda() {
+  Widget _construirAgenda({bool dentroDesplazamiento = false}) {
     final eventos = _eventosDelDia;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 5, 16, 100),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        5,
+        16,
+        dentroDesplazamiento ? 18 : 100,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: dentroDesplazamiento
+            ? MainAxisSize.min
+            : MainAxisSize.max,
         children: [
           Row(
             children: [
@@ -702,135 +871,357 @@ class _CalendarioPageState extends State<CalendarioPage>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'TU AGENDA',
                       style: TextStyle(
-                        color: textoSecundario,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontSize: 10,
                         letterSpacing: 1.8,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                     const SizedBox(height: 5),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 250),
-                      child: Text(
-                        _fechaLarga(_seleccionada),
-                        key: ValueKey(_seleccionada),
-                        style: const TextStyle(
-                          color: azulTec,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                        ),
+                    Text(
+                      _fechaLarga(_seleccionada),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
                   ],
                 ),
               ),
-              _glassButton(
-                icon: Icons.tune_rounded,
-                onTap: _mostrarFiltros,
+              _botonCristal(
+                Icons.filter_alt_rounded,
+                _mostrarFiltros,
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _busqueda,
+            onChanged: (valor) => setState(() => _consulta = valor),
+            decoration: InputDecoration(
+              hintText: 'Buscar actividades...',
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: _consulta.isEmpty
+                  ? null
+                  : IconButton(
+                      onPressed: () {
+                        _busqueda.clear();
+                        setState(() => _consulta = '');
+                      },
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+              filled: true,
+              fillColor: Theme.of(context).colorScheme.surface.withValues(
+                    alpha: .8,
+                  ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(18),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           SizedBox(
-            height: 40,
+            height: 39,
             child: ListView(
               scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
               children: ['Todos', ...categoriasCalendario].map((categoria) {
                 final activo = _filtro == categoria;
-                final color =
-                    categoria == 'Todos' ? azulTec : colorCategoria(categoria);
+                final color = categoria == 'Todos'
+                    ? azulTec
+                    : colorCategoria(categoria);
 
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: _chipCategoria(
-                    categoria: categoria,
-                    activo: activo,
-                    color: color,
-                    onTap: () => setState(() => _filtro = categoria),
+                  child: ChoiceChip(
+                    label: Text(categoria),
+                    selected: activo,
+                    onSelected: (_) =>
+                        setState(() => _filtro = categoria),
+                    selectedColor: color,
+                    backgroundColor: Theme.of(context)
+                        .colorScheme
+                        .surface
+                        .withValues(alpha: .8),
+                    labelStyle: TextStyle(
+                      color: activo
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    side: BorderSide.none,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
                   ),
                 );
               }).toList(),
             ),
           ),
-          const SizedBox(height: 14),
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              switchInCurve: Curves.easeOutCubic,
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, .04),
-                    end: Offset.zero,
-                  ).animate(animation),
-                  child: child,
+          const SizedBox(height: 12),
+          if (dentroDesplazamiento)
+            if (eventos.isEmpty)
+              _estadoVacio()
+            else
+              ...eventos.map(
+                (evento) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _tarjetaEvento(evento),
                 ),
-              ),
+              )
+          else
+            Expanded(
               child: eventos.isEmpty
-                  ? _estadoVacio(key: ValueKey('vacio-$_seleccionada-$_filtro'))
+                  ? SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: _estadoVacio(),
+                    )
                   : ListView.separated(
-                      key: ValueKey('lista-$_seleccionada-$_filtro'),
-                      padding: const EdgeInsets.only(bottom: 24),
+                      primary: false,
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.only(bottom: 20),
                       itemCount: eventos.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 11),
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: 10),
                       itemBuilder: (_, index) =>
-                          _tarjetaEvento(eventos[index], index),
+                          _tarjetaEvento(eventos[index]),
                     ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _chipCategoria({
-    required String categoria,
-    required bool activo,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 230),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: activo
-            ? [
-                BoxShadow(
-                  color: color.withValues(alpha: .22),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
+  Widget _estadoVacio() {
+    return _vidrio(
+      radio: 26,
+      child: Padding(
+        padding: const EdgeInsets.all(25),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFFDCEAFF), azulClaro],
                 ),
-              ]
-            : null,
-      ),
-      child: Material(
-        color: activo ? color : Colors.white.withValues(alpha: .67),
-        borderRadius: BorderRadius.circular(30),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(30),
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: activo
-                    ? Colors.white.withValues(alpha: .55)
-                    : Colors.white.withValues(alpha: .9),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.event_available_rounded,
+                color: Theme.of(context).colorScheme.primary,
+                size: 34,
               ),
             ),
-            child: Text(
-              categoria,
+            const SizedBox(height: 16),
+            Text(
+              'Un día para organizarte',
+              textAlign: TextAlign.center,
               style: TextStyle(
-                color: activo ? Colors.white : textoSecundario,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
               ),
             ),
+            const SizedBox(height: 8),
+            Text(
+              'Agregá clases, exámenes, entregas y recordatorios '
+              'para tener todo bajo control.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 12,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 15),
+            FilledButton.icon(
+              onPressed: () => _abrirFormulario(),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Crear actividad'),
+              style: FilledButton.styleFrom(
+                backgroundColor: azulTec,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _tarjetaEvento(Evento evento) {
+    final color = colorCategoria(evento.categoria);
+
+    return Dismissible(
+      key: ValueKey(evento.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 22),
+        decoration: BoxDecoration(
+          color: rojoTec,
+          borderRadius: BorderRadius.circular(23),
+        ),
+        child: const Icon(
+          Icons.delete_rounded,
+          color: Colors.white,
+          size: 27,
+        ),
+      ),
+      confirmDismiss: (_) async {
+        await _eliminar(evento);
+        return false;
+      },
+      child: _vidrio(
+        radio: 23,
+        child: IntrinsicHeight(
+          child: Row(
+            children: [
+              Container(
+                width: 5,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: const BorderRadius.horizontal(
+                    left: Radius.circular(23),
+                  ),
+                ),
+              ),
+              Container(
+                width: 56,
+                margin: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: .1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      evento.fecha.day.toString().padLeft(2, '0'),
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      _nombreMes(evento.fecha.month)
+                          .substring(0, 3)
+                          .toUpperCase(),
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        evento.titulo,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      if (evento.descripcion.isNotEmpty) ...[
+                        const SizedBox(height: 5),
+                        Text(
+                          evento.descripcion,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontSize: 11,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 7,
+                        runSpacing: 5,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.access_time_rounded,
+                            color: color,
+                            size: 14,
+                          ),
+                          Text(
+                            evento.hora,
+                            style: TextStyle(
+                              color:
+                                  Theme.of(context).colorScheme.onSurfaceVariant,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: .1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              evento.categoria,
+                              style: TextStyle(
+                                color: color,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              PopupMenuButton<String>(
+                onSelected: (accion) {
+                  if (accion == 'editar') {
+                    _abrirFormulario(evento: evento);
+                  } else {
+                    _eliminar(evento);
+                  }
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: 'editar',
+                    child: Text('Editar'),
+                  ),
+                  PopupMenuItem(
+                    value: 'eliminar',
+                    child: Text('Eliminar'),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -840,387 +1231,203 @@ class _CalendarioPageState extends State<CalendarioPage>
   void _mostrarFiltros() {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => _panelVidrio(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Filtrar actividades',
-              style: TextStyle(
-                color: azulTec,
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _vidrio(
+        radio: 28,
+        margen: const EdgeInsets.all(8),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Filtrar actividades',
+                style: TextStyle(
+                  color: Theme.of(ctx).colorScheme.onSurface,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 10),
+              ...['Todos', ...categoriasCalendario].map((categoria) {
+                final color = categoria == 'Todos'
+                    ? azulTec
+                    : colorCategoria(categoria);
+
+                return ListTile(
+                  leading: Icon(
+                    categoria == 'Todos'
+                        ? Icons.grid_view_rounded
+                        : Icons.circle,
+                    color: color,
+                  ),
+                  title: Text(categoria),
+                  trailing: _filtro == categoria
+                      ? const Icon(
+                          Icons.check_circle_rounded,
+                          color: azulBrillante,
+                        )
+                      : null,
+                  onTap: () {
+                    setState(() => _filtro = categoria);
+                    Navigator.pop(ctx);
+                  },
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _botonCristal(IconData icono, VoidCallback accion) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Material(
+          color: (dark ? const Color(0xFF26384A) : Colors.white)
+              .withValues(alpha: .75),
+          child: InkWell(
+            onTap: accion,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: (dark ? const Color(0xFF52677D) : Colors.white)
+                      .withValues(alpha: .9),
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(
+                icono,
+                color: Theme.of(context).colorScheme.onSurface,
+                size: 22,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Seleccioná el área académica que querés ver.',
-              style: TextStyle(color: textoSecundario, fontSize: 12),
-            ),
-            const SizedBox(height: 12),
-            ...['Todos', ...categoriasCalendario].map((categoria) {
-              final color =
-                  categoria == 'Todos' ? azulTec : colorCategoria(categoria);
-              return ListTile(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                leading: Icon(
-                  categoria == 'Todos'
-                      ? Icons.grid_view_rounded
-                      : Icons.circle,
-                  color: color,
-                  size: 19,
-                ),
-                title: Text(
-                  categoria,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                trailing: _filtro == categoria
-                    ? const Icon(Icons.check_circle, color: azulBrillante)
-                    : null,
-                onTap: () {
-                  setState(() => _filtro = categoria);
-                  Navigator.pop(ctx);
-                },
-              );
-            }),
-            const SizedBox(height: 12),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _estadoVacio({Key? key}) {
-    return Center(
-      key: key,
-      child: SingleChildScrollView(
-        child: _vidrio(
-          radio: 28,
-          intensidad: 10,
-          child: Padding(
-            padding: const EdgeInsets.all(25),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 76,
-                  height: 76,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Colors.white, Color(0xFFDCEAFF), azulClaro],
-                    ),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: azulBrillante.withValues(alpha: .2),
-                        blurRadius: 25,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.event_available_rounded,
-                    color: azulTec,
-                    size: 35,
-                  ),
-                ),
-                const SizedBox(height: 17),
-                const Text(
-                  'Un día para organizarte',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: azulTec,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Agregá clases, exámenes, entregas y recordatorios para tener todo bajo control.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: textoSecundario,
-                    fontSize: 12,
-                    height: 1.6,
-                  ),
-                ),
-                const SizedBox(height: 19),
-                FilledButton.icon(
-                  onPressed: () => _abrirFormulario(),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('Crear actividad'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: azulTec,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 14,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       ),
     );
-  }
-
-  Widget _tarjetaEvento(Evento evento, int indice) {
-    final color = colorCategoria(evento.categoria);
-
-    return TweenAnimationBuilder<double>(
-      key: ValueKey(evento.id),
-      tween: Tween(begin: 0, end: 1),
-      duration: Duration(milliseconds: 300 + indice * 70),
-      curve: Curves.easeOutCubic,
-      builder: (context, valor, child) => Opacity(
-        opacity: valor,
-        child: Transform.translate(
-          offset: Offset(0, 15 * (1 - valor)),
-          child: child,
-        ),
-      ),
-      child: Dismissible(
-        key: ValueKey('deslizar-${evento.id}'),
-        direction: DismissDirection.endToStart,
-        background: Container(
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 24),
-          decoration: BoxDecoration(
-            color: rojoTec,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: const Icon(Icons.delete_rounded, color: Colors.white),
-        ),
-        confirmDismiss: (_) async {
-          await _eliminar(evento);
-          return false;
-        },
-        child: _vidrio(
-          radio: 24,
-          intensidad: 9,
-          child: IntrinsicHeight(
-            child: Row(
-              children: [
-                Container(
-                  width: 5,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [color, color.withValues(alpha: .45)],
-                    ),
-                    borderRadius: const BorderRadius.horizontal(
-                      left: Radius.circular(24),
-                    ),
-                  ),
-                ),
-                Container(
-                  width: 59,
-                  margin: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        color.withValues(alpha: .16),
-                        color.withValues(alpha: .045),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(17),
-                    border: Border.all(
-                      color: color.withValues(alpha: .10),
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        evento.fecha.day.toString().padLeft(2, '0'),
-                        style: TextStyle(
-                          color: color,
-                          fontSize: 23,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      Text(
-                        _nombreMes(evento.fecha.month)
-                            .substring(0, 3)
-                            .toUpperCase(),
-                        style: TextStyle(
-                          color: color,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          evento.titulo,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: azulTec,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        if (evento.descripcion.isNotEmpty) ...[
-                          const SizedBox(height: 5),
-                          Text(
-                            evento.descripcion,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: textoSecundario,
-                              fontSize: 11,
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 9),
-                        Wrap(
-                          spacing: 7,
-                          runSpacing: 5,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Icon(Icons.access_time_rounded,
-                                color: color, size: 14),
-                            Text(
-                              evento.hora,
-                              style: const TextStyle(
-                                color: textoSecundario,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: color.withValues(alpha: .10),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: color.withValues(alpha: .12),
-                                ),
-                              ),
-                              child: Text(
-                                evento.categoria,
-                                style: TextStyle(
-                                  color: color,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert_rounded,
-                      color: textoSecundario),
-                  onSelected: (accion) {
-                    if (accion == 'editar') {
-                      _abrirFormulario(evento: evento);
-                    } else if (accion == 'eliminar') {
-                      _eliminar(evento);
-                    }
-                  },
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(value: 'editar', child: Text('Editar')),
-                    PopupMenuItem(value: 'eliminar', child: Text('Eliminar')),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _glassButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return _BotonCristal(icon: icon, onTap: onTap);
-  }
-
-  Widget _botonFlotante({
-    required IconData icono,
-    required String texto,
-    required VoidCallback onTap,
-  }) {
-    return _BotonNuevo(icono: icono, texto: texto, onTap: onTap);
   }
 
   Widget _vidrio({
     required Widget child,
     EdgeInsetsGeometry? margen,
-    double radio = 25,
-    double intensidad = 15,
+    double radio = 24,
   }) {
-    return _TarjetaCristal(
-      margen: margen,
-      radio: radio,
-      intensidad: intensidad,
-      child: child,
-    );
-  }
-
-  Widget _panelVidrio({required Widget child}) {
-    return _TarjetaCristal(
-      radio: 30,
-      intensidad: 22,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(22, 25, 22, 28),
-        child: SafeArea(top: false, child: child),
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      margin: margen,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radio),
+        boxShadow: [
+          BoxShadow(
+            color: azulTec.withValues(alpha: .06),
+            blurRadius: 24,
+            offset: const Offset(0, 9),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radio),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 13, sigmaY: 13),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  (dark ? const Color(0xFF26384A) : Colors.white)
+                      .withValues(alpha: .88),
+                  (dark ? const Color(0xFF1D2C3B) : Colors.white)
+                      .withValues(alpha: .66),
+                  (dark ? const Color(0xFF192838) : const Color(0xFFEAF2FF))
+                      .withValues(alpha: .65),
+                ],
+              ),
+              border: Border.all(
+                color: (dark ? const Color(0xFF536B82) : Colors.white)
+                    .withValues(alpha: .95),
+              ),
+              borderRadius: BorderRadius.circular(radio),
+            ),
+            child: child,
+          ),
+        ),
       ),
     );
   }
 }
 
-// Fondo ambiental con halos luminosos.
+class _Leyenda extends StatelessWidget {
+  final Color color;
+  final String texto;
+
+  const _Leyenda({
+    required this.color,
+    required this.texto,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 5),
+        Text(
+          texto,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _FondoLiquidGlass extends StatelessWidget {
   const _FondoLiquidGlass();
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Stack(
       children: [
         Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFFF8FAFF),
-                Color(0xFFEDF4FF),
-                Color(0xFFF7F8FD),
-              ],
+              colors: dark
+                  ? const [
+                      Color(0xFF101923),
+                      Color(0xFF152231),
+                      Color(0xFF1B2B3B),
+                    ]
+                  : const [
+                      Color(0xFFF8FAFF),
+                      Color(0xFFEDF4FF),
+                      Color(0xFFF7F8FD),
+                    ],
             ),
           ),
         ),
@@ -1232,12 +1439,18 @@ class _FondoLiquidGlass extends StatelessWidget {
         Positioned(
           top: 310,
           left: -130,
-          child: _halo(260, const Color(0xFF8DABFF).withValues(alpha: .13)),
+          child: _halo(
+            260,
+            const Color(0xFF8DABFF).withValues(alpha: .13),
+          ),
         ),
         Positioned(
           bottom: -100,
           right: -80,
-          child: _halo(300, const Color(0xFF9DCFFF).withValues(alpha: .17)),
+          child: _halo(
+            300,
+            const Color(0xFF9DCFFF).withValues(alpha: .17),
+          ),
         ),
       ],
     );
@@ -1245,7 +1458,7 @@ class _FondoLiquidGlass extends StatelessWidget {
 
   Widget _halo(double size, Color color) {
     return ImageFiltered(
-      imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+      imageFilter: ImageFilter.blur(sigmaX: 45, sigmaY: 45),
       child: Container(
         width: size,
         height: size,
@@ -1258,143 +1471,6 @@ class _FondoLiquidGlass extends StatelessWidget {
   }
 }
 
-// Panel con desenfoque, reflejo superior y borde translúcido.
-class _TarjetaCristal extends StatelessWidget {
-  final Widget child;
-  final EdgeInsetsGeometry? margen;
-  final double radio;
-  final double intensidad;
-
-  const _TarjetaCristal({
-    required this.child,
-    this.margen,
-    required this.radio,
-    required this.intensidad,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: margen,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radio),
-        boxShadow: [
-          BoxShadow(
-            color: azulTec.withValues(alpha: .055),
-            blurRadius: 28,
-            offset: const Offset(0, 12),
-          ),
-          BoxShadow(
-            color: Colors.white.withValues(alpha: .75),
-            blurRadius: 2,
-            spreadRadius: -1,
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radio),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: intensidad,
-            sigmaY: intensidad,
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withValues(alpha: .83),
-                  Colors.white.withValues(alpha: .58),
-                  const Color(0xFFEAF2FF).withValues(alpha: .57),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(radio),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: .95),
-                width: 1.35,
-              ),
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  top: 0,
-                  left: 15,
-                  right: 15,
-                  child: Container(
-                    height: 1,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.white.withValues(alpha: 0),
-                          Colors.white,
-                          Colors.white.withValues(alpha: 0),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                child,
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// Botón de cristal con animación al presionar.
-class _BotonCristal extends StatefulWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _BotonCristal({required this.icon, required this.onTap});
-
-  @override
-  State<_BotonCristal> createState() => _BotonCristalState();
-}
-
-class _BotonCristalState extends State<_BotonCristal> {
-  bool _presionado = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedScale(
-      scale: _presionado ? .90 : 1,
-      duration: const Duration(milliseconds: 140),
-      curve: Curves.easeOut,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(17),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-          child: Material(
-            color: Colors.white.withValues(alpha: .62),
-            child: InkWell(
-              onTap: widget.onTap,
-              onHighlightChanged: (valor) =>
-                  setState(() => _presionado = valor),
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(17),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: .95),
-                    width: 1.3,
-                  ),
-                ),
-                child: Icon(widget.icon, color: azulTec, size: 22),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// Celda animada para cada día.
 class _CeldaDia extends StatefulWidget {
   final int dia;
   final bool seleccionado;
@@ -1421,51 +1497,46 @@ class _CeldaDiaState extends State<_CeldaDia> {
   Widget build(BuildContext context) {
     final seleccionado = widget.seleccionado;
     final esHoy = widget.esHoy;
+    final dark = Theme.of(context).brightness == Brightness.dark;
 
     return AnimatedScale(
-      scale: _presionado ? .88 : 1,
+      scale: _presionado ? .9 : 1,
       duration: const Duration(milliseconds: 120),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 260),
-        curve: Curves.easeOutCubic,
+        duration: const Duration(milliseconds: 230),
         decoration: BoxDecoration(
           gradient: seleccionado
               ? const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF4389FF), azulBrillante, azulTec],
+                  colors: [
+                    Color(0xFF4389FF),
+                    azulBrillante,
+                    azulTec,
+                  ],
                 )
               : esHoy
                   ? LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
                       colors: [
                         const Color(0xFFFFF0F2),
                         rojoTec.withValues(alpha: .07),
                       ],
                     )
                   : null,
-          color: seleccionado || esHoy ? null : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: seleccionado
-                ? Colors.white.withValues(alpha: .65)
+                ? Colors.white.withValues(alpha: .7)
                 : esHoy
                     ? rojoTec.withValues(alpha: .65)
                     : Colors.transparent,
-            width: seleccionado ? 1.2 : 1,
           ),
           boxShadow: seleccionado
               ? [
                   BoxShadow(
-                    color: azulBrillante.withValues(alpha: .32),
-                    blurRadius: 13,
-                    offset: const Offset(0, 4),
-                  ),
-                  BoxShadow(
-                    color: Colors.white.withValues(alpha: .30),
-                    blurRadius: 1,
-                    spreadRadius: -1,
+                    color: azulBrillante.withValues(alpha: .25),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
                   ),
                 ]
               : null,
@@ -1473,10 +1544,11 @@ class _CeldaDiaState extends State<_CeldaDia> {
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             onTap: widget.onTap,
-            onHighlightChanged: (valor) =>
-                setState(() => _presionado = valor),
+            onHighlightChanged: (valor) {
+              setState(() => _presionado = valor);
+            },
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -1487,14 +1559,16 @@ class _CeldaDiaState extends State<_CeldaDia> {
                         ? Colors.white
                         : esHoy
                             ? rojoTec
-                            : azulTec,
+                            : dark
+                                ? const Color(0xFFE4EDF7)
+                                : azulTec,
                     fontWeight: seleccionado || esHoy
                         ? FontWeight.w900
                         : FontWeight.w600,
                     fontSize: 14,
                   ),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 4),
                 SizedBox(
                   height: 5,
                   child: Row(
@@ -1515,91 +1589,6 @@ class _CeldaDiaState extends State<_CeldaDia> {
                   ),
                 ),
               ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BotonNuevo extends StatefulWidget {
-  final IconData icono;
-  final String texto;
-  final VoidCallback onTap;
-
-  const _BotonNuevo({
-    required this.icono,
-    required this.texto,
-    required this.onTap,
-  });
-
-  @override
-  State<_BotonNuevo> createState() => _BotonNuevoState();
-}
-
-class _BotonNuevoState extends State<_BotonNuevo> {
-  bool _presionado = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedScale(
-      scale: _presionado ? .94 : 1,
-      duration: const Duration(milliseconds: 140),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(25),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: widget.onTap,
-              onHighlightChanged: (valor) =>
-                  setState(() => _presionado = valor),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 15,
-                ),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF3279F6),
-                      azulBrillante,
-                      azulTec,
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(25),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: .72),
-                    width: 1.3,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: azulBrillante.withValues(alpha: .29),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(widget.icono, color: Colors.white, size: 22),
-                    const SizedBox(width: 9),
-                    Text(
-                      widget.texto,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ),
           ),
         ),
@@ -1637,14 +1626,15 @@ class _FormularioEventoState extends State<FormularioEvento> {
     super.initState();
 
     final evento = widget.evento;
+
     _titulo = TextEditingController(text: evento?.titulo ?? '');
-    _descripcion = TextEditingController(
-      text: evento?.descripcion ?? '',
-    );
+    _descripcion =
+        TextEditingController(text: evento?.descripcion ?? '');
 
     _fecha = evento?.fecha ?? widget.fechaInicial;
 
     final partes = (evento?.hora ?? '08:00').split(':');
+
     _hora = TimeOfDay(
       hour: (int.tryParse(partes[0]) ?? 8).clamp(0, 23),
       minute: (partes.length > 1
@@ -1673,23 +1663,31 @@ class _FormularioEventoState extends State<FormularioEvento> {
       '${hora.hour.toString().padLeft(2, '0')}:'
       '${hora.minute.toString().padLeft(2, '0')}';
 
-  InputDecoration _decoracion(String titulo, IconData icono) {
+  InputDecoration _decoracion(String texto, IconData icono) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
     return InputDecoration(
-      labelText: titulo,
+      labelText: texto,
       prefixIcon: Icon(icono, color: azulBrillante),
       filled: true,
-      fillColor: const Color(0xFFEFF4FC).withValues(alpha: .80),
+      fillColor: (dark ? const Color(0xFF26384A) : const Color(0xFFEFF4FC))
+          .withValues(alpha: .8),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(17),
         borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(17),
-        borderSide: const BorderSide(color: Color(0xFFDCE7F6)),
+        borderSide: BorderSide(
+          color: dark ? const Color(0xFF536B82) : const Color(0xFFDCE7F6),
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(17),
-        borderSide: const BorderSide(color: azulBrillante, width: 1.5),
+        borderSide: const BorderSide(
+          color: azulBrillante,
+          width: 1.5,
+        ),
       ),
     );
   }
@@ -1702,16 +1700,18 @@ class _FormularioEventoState extends State<FormularioEvento> {
       lastDate: DateTime(2100),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: azulTec,
-            secondary: azulBrillante,
-          ),
+          colorScheme: Theme.of(ctx).colorScheme.copyWith(
+                primary: azulTec,
+                secondary: azulBrillante,
+              ),
         ),
         child: child!,
       ),
     );
 
-    if (elegida != null) setState(() => _fecha = elegida);
+    if (elegida != null) {
+      setState(() => _fecha = elegida);
+    }
   }
 
   Future<void> _elegirHora() async {
@@ -1729,7 +1729,9 @@ class _FormularioEventoState extends State<FormularioEvento> {
       ),
     );
 
-    if (elegida != null) setState(() => _hora = elegida);
+    if (elegida != null) {
+      setState(() => _hora = elegida);
+    }
   }
 
   void _guardar() {
@@ -1761,7 +1763,7 @@ class _FormularioEventoState extends State<FormularioEvento> {
           top: Radius.circular(30),
         ),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
           child: Container(
             constraints: BoxConstraints(
               maxHeight: MediaQuery.sizeOf(context).height * .9,
@@ -1771,12 +1773,18 @@ class _FormularioEventoState extends State<FormularioEvento> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.white.withValues(alpha: .97),
-                  const Color(0xFFF0F5FF).withValues(alpha: .98),
+                  Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF26384A)
+                      : Colors.white.withValues(alpha: .98),
+                  Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF1B2938)
+                      : const Color(0xFFF0F5FF).withValues(alpha: .98),
                 ],
               ),
               border: Border.all(
-                color: Colors.white.withValues(alpha: .95),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF536B82)
+                    : Colors.white.withValues(alpha: .95),
               ),
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(30),
@@ -1785,6 +1793,7 @@ class _FormularioEventoState extends State<FormularioEvento> {
             child: SafeArea(
               top: false,
               child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(22, 12, 22, 26),
                 child: Form(
                   key: _formKey,
@@ -1802,25 +1811,24 @@ class _FormularioEventoState extends State<FormularioEvento> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 23),
+                      const SizedBox(height: 22),
                       Text(
                         editando ? 'Editar actividad' : 'Nueva actividad',
-                        style: const TextStyle(
-                          color: azulTec,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 25,
                           fontWeight: FontWeight.w900,
-                          letterSpacing: -.5,
                         ),
                       ),
                       const SizedBox(height: 6),
-                      const Text(
+                      Text(
                         'Clases, exámenes, entregas y recordatorios.',
                         style: TextStyle(
-                          color: textoSecundario,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 12,
                         ),
                       ),
-                      const SizedBox(height: 23),
+                      const SizedBox(height: 22),
                       TextFormField(
                         controller: _titulo,
                         textCapitalization: TextCapitalization.sentences,
@@ -1834,7 +1842,7 @@ class _FormularioEventoState extends State<FormularioEvento> {
                                 ? 'Escribí el nombre de la actividad'
                                 : null,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       TextFormField(
                         controller: _descripcion,
                         textCapitalization: TextCapitalization.sentences,
@@ -1845,7 +1853,7 @@ class _FormularioEventoState extends State<FormularioEvento> {
                           Icons.notes_rounded,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       DropdownButtonFormField<String>(
                         initialValue: _categoria,
                         isExpanded: true,
@@ -1854,10 +1862,12 @@ class _FormularioEventoState extends State<FormularioEvento> {
                           Icons.school_rounded,
                         ),
                         items: categoriasCalendario
-                            .map((categoria) => DropdownMenuItem(
-                                  value: categoria,
-                                  child: Text(categoria),
-                                ))
+                            .map(
+                              (categoria) => DropdownMenuItem(
+                                value: categoria,
+                                child: Text(categoria),
+                              ),
+                            )
                             .toList(),
                         onChanged: (valor) {
                           if (valor != null) {
@@ -1866,54 +1876,77 @@ class _FormularioEventoState extends State<FormularioEvento> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: _elegirFecha,
-                              icon: const Icon(Icons.calendar_month_rounded),
-                              label: FittedBox(
-                                child: Text(_fechaTexto(_fecha)),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final vertical = constraints.maxWidth < 330;
+
+                          final botonFecha = OutlinedButton.icon(
+                            onPressed: _elegirFecha,
+                            icon: const Icon(
+                              Icons.calendar_month_rounded,
+                            ),
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(_fechaTexto(_fecha)),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: azulTec,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 15,
+                                horizontal: 8,
                               ),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: azulTec,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 15,
-                                  horizontal: 8,
-                                ),
-                                side: const BorderSide(
-                                  color: Color(0xFFD6E3F5),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
+                              side: const BorderSide(
+                                color: Color(0xFFD6E3F5),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: _elegirHora,
-                              icon: const Icon(Icons.access_time_rounded),
-                              label: Text(_horaTexto(_hora)),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: azulTec,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 15,
-                                  horizontal: 8,
-                                ),
-                                side: const BorderSide(
-                                  color: Color(0xFFD6E3F5),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
+                          );
+
+                          final botonHora = OutlinedButton.icon(
+                            onPressed: _elegirHora,
+                            icon: const Icon(
+                              Icons.access_time_rounded,
+                            ),
+                            label: Text(_horaTexto(_hora)),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: azulTec,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 15,
+                                horizontal: 8,
+                              ),
+                              side: const BorderSide(
+                                color: Color(0xFFD6E3F5),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15),
                               ),
                             ),
-                          ),
-                        ],
+                          );
+
+                          if (vertical) {
+                            return Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.stretch,
+                              children: [
+                                botonFecha,
+                                const SizedBox(height: 10),
+                                botonHora,
+                              ],
+                            );
+                          }
+
+                          return Row(
+                            children: [
+                              Expanded(child: botonFecha),
+                              const SizedBox(width: 10),
+                              Expanded(child: botonHora),
+                            ],
+                          );
+                        },
                       ),
-                      const SizedBox(height: 23),
+                      const SizedBox(height: 22),
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton.icon(
@@ -1921,16 +1954,18 @@ class _FormularioEventoState extends State<FormularioEvento> {
                           style: FilledButton.styleFrom(
                             backgroundColor: azulTec,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 17),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 17,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(17),
                             ),
-                            elevation: 5,
-                            shadowColor: azulTec.withValues(alpha: .25),
                           ),
                           icon: const Icon(Icons.check_rounded),
                           label: Text(
-                            editando ? 'Guardar cambios' : 'Guardar actividad',
+                            editando
+                                ? 'Guardar cambios'
+                                : 'Guardar actividad',
                             style: const TextStyle(
                               fontWeight: FontWeight.w800,
                             ),
