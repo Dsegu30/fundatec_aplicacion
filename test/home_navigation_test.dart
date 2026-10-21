@@ -85,7 +85,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(PerfilPage), findsOneWidget);
-    expect(find.byType(NavegacionGlass), findsNothing);
+    expect(find.byType(NavegacionGlass), findsOneWidget);
     expect(find.byTooltip('Inicio'), findsOneWidget);
     expect(find.byTooltip('Calendario'), findsOneWidget);
     expect(find.byTooltip('Avisos'), findsOneWidget);
@@ -98,6 +98,9 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const TecApp());
 
+    expect(find.byType(TextField).first, findsOneWidget);
+    expect(find.byIcon(Icons.tune_rounded), findsNothing);
+
     await tester.enterText(
       find.byType(TextField).first,
       'Licenciatura Industrial',
@@ -109,36 +112,17 @@ void main() {
     expect(find.byType(LicenciaturaPage), findsOneWidget);
   });
 
-  testWidgets('Licenciatura muestra datos oficiales y contactos pendientes', (
+  testWidgets('Licenciatura muestra el resumen del programa', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const MaterialApp(home: LicenciaturaPage()));
 
     expect(
-      find.textContaining(
-        'planear, diseñar, implementar y optimizar sistemas de manufactura de bienes y servicios.',
-      ),
+      find.textContaining('La Licenciatura en Producción Industrial prepara'),
       findsOneWidget,
     );
-
-    final buttons = tester
-        .widgetList<ElevatedButton>(find.byType(ElevatedButton))
-        .toList();
-    expect(buttons, hasLength(2));
-
-    buttons.first.onPressed!();
-    await tester.pumpAndSettle();
-    expect(
-      find.text('El contacto de WhatsApp se agregará próximamente.'),
-      findsOneWidget,
-    );
-
-    buttons.last.onPressed!();
-    await tester.pumpAndSettle();
-    expect(
-      find.text('El enlace para agendar una cita se agregará próximamente.'),
-      findsOneWidget,
-    );
+    expect(find.text('Cartago'), findsOneWidget);
+    expect(find.text('Ingeniero (a) en Producción Industrial'), findsOneWidget);
   });
 
   testWidgets('Posgrados usa los colores del tema oscuro', (
@@ -157,5 +141,43 @@ void main() {
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
     expect(scaffold.backgroundColor, darkTheme.scaffoldBackgroundColor);
     expect(find.byType(NavegacionGlass), findsOneWidget);
+  });
+
+  testWidgets('Licenciatura usa la navegación en tema claro y oscuro', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(280, 600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final lightTheme = buildAppTheme(Brightness.light);
+    final darkTheme = buildAppTheme(Brightness.dark);
+
+    for (final (mode, theme) in [
+      (ThemeMode.light, lightTheme),
+      (ThemeMode.dark, darkTheme),
+    ]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: lightTheme,
+          darkTheme: darkTheme,
+          themeMode: mode,
+          home: const LicenciaturaPage(),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 900));
+
+      final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
+      expect(scaffold.backgroundColor, theme.scaffoldBackgroundColor);
+      expect(find.byType(NavegacionGlass), findsOneWidget);
+      expect(find.byTooltip('Calendario'), findsOneWidget);
+
+      var exception = tester.takeException();
+      while (exception is NetworkImageLoadException) {
+        exception = tester.takeException();
+      }
+      expect(exception, isNull, reason: exception?.toString());
+    }
   });
 }

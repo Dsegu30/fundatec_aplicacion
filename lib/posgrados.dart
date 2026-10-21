@@ -6,6 +6,7 @@ import 'calendario.dart';
 import 'navegacion_glass.dart';
 import 'notificaciones.dart';
 import 'perfil.dart';
+import 'responsive_layout.dart';
 
 class PosgradosPage extends StatefulWidget {
   const PosgradosPage({super.key});
@@ -25,21 +26,21 @@ class _PosgradosPageState extends State<PosgradosPage> {
       descripcion: 'Desarrolla investigación avanzada, genera conocimiento y aporta soluciones innovadoras en el campo de la ingeniería.',
       icono: Icons.engineering_outlined,
       colores: [Color(0xFF102A43), Color(0xFF176B87)],
-      imagen: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&w=900&q=85',
+      imagen: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&w=1500&q=92',
     ),
     _PosgradoData(
       titulo: 'Maestría en Cadena de Abastecimiento',
       descripcion: 'Especialízate en logística, planificación y gestión eficiente de las cadenas de suministro.',
       icono: Icons.local_shipping_outlined,
       colores: [Color(0xFF182848), Color(0xFF315C91)],
-      imagen: 'https://images.unsplash.com/photo-1773399881946-8371e1c538d9?auto=format&fit=crop&w=900&q=85',
+      imagen: 'https://images.unsplash.com/photo-1773399881946-8371e1c538d9?auto=format&fit=crop&w=1500&q=92',
     ),
     _PosgradoData(
       titulo: 'Maestría en Sistemas Modernos de Manufactura',
       descripcion: 'Aprende sobre tecnologías modernas, automatización y optimización de procesos de manufactura.',
       icono: Icons.precision_manufacturing_outlined,
       colores: [Color(0xFF162D3D), Color(0xFF247B87)],
-      imagen: 'https://images.unsplash.com/photo-1647427060118-4911c9821b82?auto=format&fit=crop&w=900&q=85',
+      imagen: 'https://images.unsplash.com/photo-1647427060118-4911c9821b82?auto=format&fit=crop&w=1500&q=92',
     ),
   ];
 
@@ -93,6 +94,9 @@ class _PosgradosPageState extends State<PosgradosPage> {
             } else if (index == 1) {
               Navigator.pop(context);
               _abrirCalendario();
+            } else if (index == 3) {
+              Navigator.pop(context);
+              _abrirPerfil();
             }
           },
         ),
@@ -132,20 +136,22 @@ class _PosgradosPageState extends State<PosgradosPage> {
               child: CustomScrollView(
                 physics: const BouncingScrollPhysics(),
                 slivers: [
-                  SliverToBoxAdapter(child: _construirEncabezado()),
+                  SliverToBoxAdapter(
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1100),
+                        child: _construirEncabezado(),
+                      ),
+                    ),
+                  ),
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(16, 22, 16, 24),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final posgrado = posgrados[index];
-
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            bottom: index == posgrados.length - 1 ? 0 : 16,
-                          ),
-                          child: _construirTarjeta(posgrado),
-                        );
-                      }, childCount: posgrados.length),
+                    sliver: SliverToBoxAdapter(
+                      child: ResponsiveCardGrid(
+                        itemCount: posgrados.length,
+                        itemBuilder: (context, index) =>
+                            _construirTarjeta(posgrados[index]),
+                      ),
                     ),
                   ),
                 ],
@@ -177,15 +183,23 @@ class _PosgradosPageState extends State<PosgradosPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              IconButton(
-                tooltip: 'Avisos',
-                onPressed: _abrirAvisos,
-                icon: const Icon(
-                  Icons.notifications_none_rounded,
-                  color: Colors.white,
-                  size: 26,
+              AppBackButton(
+                onDarkBackground: true,
+                onPressed: () {
+                  Navigator.of(context).maybePop();
+                },
+              ),
+              const Spacer(),
+              GelPress(
+                child: IconButton(
+                  tooltip: 'Avisos',
+                  onPressed: _abrirAvisos,
+                  icon: const Icon(
+                    Icons.notifications_none_rounded,
+                    color: Colors.white,
+                    size: 26,
+                  ),
                 ),
               ),
             ],
@@ -212,153 +226,156 @@ class _PosgradosPageState extends State<PosgradosPage> {
   Widget _construirTarjeta(_PosgradoData posgrado) {
     const radio = 25.0;
 
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(radio),
-      child: InkWell(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          _mostrarMensaje('Seleccionaste: ${posgrado.titulo}');
-        },
+    return GelPress(
+      child: Material(
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(radio),
-        child: Container(
-          height: 178,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(radio),
-            gradient: LinearGradient(
-              colors: posgrado.colores,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: posgrado.colores.first.withValues(alpha: 0.22),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            _mostrarMensaje('Seleccionaste: ${posgrado.titulo}');
+          },
+          borderRadius: BorderRadius.circular(radio),
+          child: Container(
+            height: 178,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(radio),
+              gradient: LinearGradient(
+                colors: posgrado.colores,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(radio),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Positioned.fill(
-                  child: Opacity(
-                    opacity: 0.68,
-                    child: Image.network(
-                      posgrado.imagen,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.centerRight,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const SizedBox.shrink();
-                      },
-                    ),
-                  ),
-                ),
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [
-                          posgrado.colores.first.withValues(alpha: 0.82),
-                          posgrado.colores.first.withValues(alpha: 0.58),
-                          posgrado.colores.last.withValues(alpha: 0.16),
-                        ],
-                        stops: const [0.0, 0.38, 1.0],
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: -35,
-                  right: 45,
-                  child: Container(
-                    width: 115,
-                    height: 115,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.05),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 17, 47, 17),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 53,
-                        height: 53,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(17),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Icon(
-                          posgrado.icono,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(width: 13),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              posgrado.titulo,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                height: 1.18,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              posgrado.descripcion,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 11.5,
-                                height: 1.35,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Positioned(
-                  right: 12,
-                  bottom: 12,
-                  child: Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.35),
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.arrow_forward_rounded,
-                      color: Colors.white,
-                      size: 19,
-                    ),
-                  ),
+              boxShadow: [
+                BoxShadow(
+                  color: posgrado.colores.first.withValues(alpha: 0.22),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
               ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(radio),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Positioned.fill(
+                    child: Opacity(
+                      opacity: 0.68,
+                      child: Image.network(
+                        posgrado.imagen,
+                        fit: BoxFit.cover,
+                        filterQuality: FilterQuality.high,
+                        alignment: Alignment.centerRight,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            posgrado.colores.first.withValues(alpha: 0.82),
+                            posgrado.colores.first.withValues(alpha: 0.58),
+                            posgrado.colores.last.withValues(alpha: 0.16),
+                          ],
+                          stops: const [0.0, 0.38, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: -35,
+                    right: 45,
+                    child: Container(
+                      width: 115,
+                      height: 115,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 17, 47, 17),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 53,
+                          height: 53,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(17),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Icon(
+                            posgrado.icono,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(width: 13),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                posgrado.titulo,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.18,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                posgrado.descripcion,
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 11.5,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Positioned(
+                    right: 12,
+                    bottom: 12,
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_forward_rounded,
+                        color: Colors.white,
+                        size: 19,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

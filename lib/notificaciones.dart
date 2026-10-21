@@ -207,7 +207,12 @@ class _NotificacionesScreenState extends State<NotificacionesScreen>
                     ),
                 child: Column(
                   children: [
-                    _construirBarraSuperior(),
+                    Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 960),
+                        child: _construirBarraSuperior(),
+                      ),
+                    ),
                     Expanded(child: _construirContenido()),
                   ],
                 ),
@@ -225,9 +230,8 @@ class _NotificacionesScreenState extends State<NotificacionesScreen>
       padding: const EdgeInsets.fromLTRB(22, 12, 22, 8),
       child: Row(
         children: [
-          _BotonGlass(
-            icono: Icons.arrow_back_rounded,
-            onTap: () {
+          AppBackButton(
+            onPressed: () {
               if (widget.embedded && widget.onSectionSelected != null) {
                 widget.onSectionSelected!(0);
               } else if (Navigator.of(context).canPop()) {
@@ -252,78 +256,93 @@ class _NotificacionesScreenState extends State<NotificacionesScreen>
       physics: const BouncingScrollPhysics(),
       slivers: [
         SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 18, 24, 22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 960),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 18, 24, 22),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 5,
-                      height: 17,
-                      decoration: BoxDecoration(
-                        color: _azulBrillante,
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                    ),
-                    const SizedBox(width: 9),
-                    Expanded(
-                      child: Text(
-                        'PLATAFORMA ACADÉMICA',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontSize: 10,
-                          letterSpacing: 2.1,
-                          fontWeight: FontWeight.w800,
+                    Row(
+                      children: [
+                        Container(
+                          width: 5,
+                          height: 17,
+                          decoration: BoxDecoration(
+                            color: _azulBrillante,
+                            borderRadius: BorderRadius.circular(5),
+                          ),
                         ),
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: Text(
+                            'PLATAFORMA ACADÉMICA',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              fontSize: 10,
+                              letterSpacing: 2.1,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 13),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Centro de\navisos',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontSize: 39,
+                              height: 1.02,
+                              letterSpacing: -1.6,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        _IconoPrincipalGlass(cantidad: _noLeidos),
+                      ],
+                    ),
+                    const SizedBox(height: 13),
+                    Text(
+                      'Todo lo importante de tu vida académica, '
+                      'en un solo lugar.',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 14,
+                        height: 1.55,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
+                    const SizedBox(height: 26),
+                    _construirFiltros(),
+                    const SizedBox(height: 20),
+                    _construirTuEspacio(),
                   ],
                 ),
-                const SizedBox(height: 13),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Centro de\navisos',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          fontSize: 39,
-                          height: 1.02,
-                          letterSpacing: -1.6,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    _IconoPrincipalGlass(cantidad: _noLeidos),
-                  ],
-                ),
-                const SizedBox(height: 13),
-                Text(
-                  'Todo lo importante de tu vida académica, '
-                  'en un solo lugar.',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontSize: 14,
-                    height: 1.55,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-                const SizedBox(height: 26),
-                _construirFiltros(),
-                const SizedBox(height: 20),
-                _construirTuEspacio(),
-              ],
+              ),
             ),
           ),
         ),
         if (_avisosVisibles.isEmpty)
-          const SliverFillRemaining(hasScrollBody: false, child: _EstadoVacio())
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 960),
+                child: _EstadoVacio(),
+              ),
+            ),
+          )
         else
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(22, 0, 22, 145),
@@ -331,12 +350,17 @@ class _NotificacionesScreenState extends State<NotificacionesScreen>
               delegate: SliverChildBuilderDelegate((context, index) {
                 final aviso = _avisosVisibles[index];
 
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _TarjetaAviso(
-                    aviso: aviso,
-                    indice: index,
-                    onTap: () => _abrirAviso(aviso),
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 960),
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _TarjetaAviso(
+                        aviso: aviso,
+                        indice: index,
+                        onTap: () => _abrirAviso(aviso),
+                      ),
+                    ),
                   ),
                 );
               }, childCount: _avisosVisibles.length),
@@ -694,144 +718,146 @@ class _TarjetaAvisoState extends State<_TarjetaAviso>
     final theme = Theme.of(context);
     final dark = theme.brightness == Brightness.dark;
 
-    return AnimatedScale(
-      scale: _presionado ? 0.985 : 1,
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      child: GestureDetector(
-        onTapDown: (_) {
-          setState(() => _presionado = true);
-          _reflejo.forward(from: 0);
-        },
-        onTapCancel: () {
-          setState(() => _presionado = false);
-        },
-        onTapUp: (_) {
-          setState(() => _presionado = false);
-        },
-        onTap: widget.onTap,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(23),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: (dark ? const Color(0xFF26384A) : Colors.white)
-                    .withValues(
-                      alpha: dark
-                          ? aviso.leido
-                                ? 0.94
-                                : 0.98
-                          : aviso.leido
-                          ? 0.61
-                          : 0.83,
+    return GelPress(
+      child: AnimatedScale(
+        scale: _presionado ? 0.985 : 1,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        child: GestureDetector(
+          onTapDown: (_) {
+            setState(() => _presionado = true);
+            _reflejo.forward(from: 0);
+          },
+          onTapCancel: () {
+            setState(() => _presionado = false);
+          },
+          onTapUp: (_) {
+            setState(() => _presionado = false);
+          },
+          onTap: widget.onTap,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(23),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: (dark ? const Color(0xFF26384A) : Colors.white)
+                      .withValues(
+                        alpha: dark
+                            ? aviso.leido
+                                  ? 0.94
+                                  : 0.98
+                            : aviso.leido
+                            ? 0.61
+                            : 0.83,
+                      ),
+                  borderRadius: BorderRadius.circular(23),
+                  border: Border.all(
+                    color: (dark ? const Color(0xFF536B82) : Colors.white)
+                        .withValues(alpha: 0.95),
+                    width: 1.2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _azulTec.withValues(
+                        alpha: aviso.leido ? 0.025 : 0.055,
+                      ),
+                      blurRadius: 20,
+                      offset: const Offset(0, 7),
                     ),
-                borderRadius: BorderRadius.circular(23),
-                border: Border.all(
-                  color: (dark ? const Color(0xFF536B82) : Colors.white)
-                      .withValues(alpha: 0.95),
-                  width: 1.2,
+                  ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: _azulTec.withValues(
-                      alpha: aviso.leido ? 0.025 : 0.055,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 47,
+                      height: 47,
+                      decoration: BoxDecoration(
+                        color: aviso.color.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(aviso.icono, color: aviso.color, size: 23),
                     ),
-                    blurRadius: 20,
-                    offset: const Offset(0, 7),
-                  ),
-                ],
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 47,
-                    height: 47,
-                    decoration: BoxDecoration(
-                      color: aviso.color.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(aviso.icono, color: aviso.color, size: 23),
-                  ),
-                  const SizedBox(width: 13),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                aviso.titulo,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: theme.colorScheme.onSurface,
-                                  fontSize: 14,
-                                  fontWeight: aviso.leido
-                                      ? FontWeight.w600
-                                      : FontWeight.w800,
+                    const SizedBox(width: 13),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  aviso.titulo,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onSurface,
+                                    fontSize: 14,
+                                    fontWeight: aviso.leido
+                                        ? FontWeight.w600
+                                        : FontWeight.w800,
+                                  ),
                                 ),
                               ),
-                            ),
-                            if (!aviso.leido) ...[
-                              const SizedBox(width: 6),
-                              Container(
-                                width: 7,
-                                height: 7,
-                                decoration: const BoxDecoration(
-                                  color: _azulBrillante,
-                                  shape: BoxShape.circle,
+                              if (!aviso.leido) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  width: 7,
+                                  height: 7,
+                                  decoration: const BoxDecoration(
+                                    color: _azulBrillante,
+                                    shape: BoxShape.circle,
+                                  ),
                                 ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            aviso.descripcion,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              fontSize: 12,
+                              height: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 11),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.access_time_rounded,
+                                size: 12,
+                                color: theme.colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.8),
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                aviso.fecha,
+                                style: TextStyle(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const Spacer(),
+                              Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 12,
+                                color: theme.colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.7),
                               ),
                             ],
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          aviso.descripcion,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontSize: 12,
-                            height: 1.5,
                           ),
-                        ),
-                        const SizedBox(height: 11),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.access_time_rounded,
-                              size: 12,
-                              color: theme.colorScheme.onSurfaceVariant
-                                  .withValues(alpha: 0.8),
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              aviso.fecha,
-                              style: TextStyle(
-                                color: theme.colorScheme.onSurfaceVariant,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const Spacer(),
-                            Icon(
-                              Icons.arrow_forward_ios_rounded,
-                              size: 12,
-                              color: theme.colorScheme.onSurfaceVariant
-                                  .withValues(alpha: 0.7),
-                            ),
-                          ],
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -917,31 +943,33 @@ class _BotonGlass extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(17),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: Material(
-          color: (dark ? const Color(0xFF26384A) : Colors.white).withValues(
-            alpha: dark ? 0.96 : 0.68,
-          ),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(17),
-            child: Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(17),
-                border: Border.all(
-                  color: (dark ? const Color(0xFF536B82) : Colors.white)
-                      .withValues(alpha: 0.95),
+    return GelPress(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(17),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Material(
+            color: (dark ? const Color(0xFF26384A) : Colors.white).withValues(
+              alpha: dark ? 0.96 : 0.68,
+            ),
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(17),
+              child: Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(17),
+                  border: Border.all(
+                    color: (dark ? const Color(0xFF536B82) : Colors.white)
+                        .withValues(alpha: 0.95),
+                  ),
                 ),
-              ),
-              child: Icon(
-                icono,
-                color: Theme.of(context).colorScheme.primary,
-                size: 21,
+                child: Icon(
+                  icono,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 21,
+                ),
               ),
             ),
           ),
@@ -970,77 +998,79 @@ class _SegmentoGlass extends StatelessWidget {
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 240),
-      curve: Curves.easeOutCubic,
-      height: 46,
-      decoration: BoxDecoration(
-        color: seleccionado
-            ? _azulTec
-            : (dark ? const Color(0xFF26384A) : Colors.white).withValues(
-                alpha: dark ? 0.96 : 0.67,
-              ),
-        borderRadius: BorderRadius.circular(17),
-        border: Border.all(
+    return GelPress(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOutCubic,
+        height: 46,
+        decoration: BoxDecoration(
           color: seleccionado
               ? _azulTec
-              : (dark ? const Color(0xFF536B82) : Colors.white).withValues(
-                  alpha: 0.96,
+              : (dark ? const Color(0xFF26384A) : Colors.white).withValues(
+                  alpha: dark ? 0.96 : 0.67,
                 ),
-        ),
-        boxShadow: seleccionado
-            ? [
-                BoxShadow(
-                  color: _azulTec.withValues(alpha: 0.17),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ]
-            : null,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
           borderRadius: BorderRadius.circular(17),
-          child: Center(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    texto,
-                    style: TextStyle(
-                      color: seleccionado ? Colors.white : muted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
+          border: Border.all(
+            color: seleccionado
+                ? _azulTec
+                : (dark ? const Color(0xFF536B82) : Colors.white).withValues(
+                    alpha: 0.96,
                   ),
-                  if (contador > 0 && texto == 'Sin leer') ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 5,
-                        vertical: 2,
+          ),
+          boxShadow: seleccionado
+              ? [
+                  BoxShadow(
+                    color: _azulTec.withValues(alpha: 0.17),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ]
+              : null,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(17),
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      texto,
+                      style: TextStyle(
+                        color: seleccionado ? Colors.white : muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
                       ),
-                      decoration: BoxDecoration(
-                        color: seleccionado
-                            ? Colors.white.withValues(alpha: 0.20)
-                            : _azulBrillante.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '$contador',
-                        style: TextStyle(
-                          color: seleccionado ? Colors.white : _azulTec,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
+                    ),
+                    if (contador > 0 && texto == 'Sin leer') ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: seleccionado
+                              ? Colors.white.withValues(alpha: 0.20)
+                              : _azulBrillante.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '$contador',
+                          style: TextStyle(
+                            color: seleccionado ? Colors.white : _azulTec,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),

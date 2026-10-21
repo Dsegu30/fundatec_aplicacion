@@ -21,12 +21,7 @@ const textoSecundario = Color(0xFF718096);
 const rojoTec = Color(0xFFE11D35);
 const verdeTec = Color(0xFF16805D);
 
-const categoriasCalendario = [
-  'Técnico',
-  'Licenciatura',
-  'Posgrado',
-  'Otro',
-];
+const categoriasCalendario = ['Técnico', 'Licenciatura', 'Posgrado', 'Otro'];
 
 Color colorCategoria(String categoria) {
   switch (categoria) {
@@ -75,26 +70,26 @@ class Evento {
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'titulo': titulo,
-        'descripcion': descripcion,
-        'fecha': fecha.toIso8601String(),
-        'hora': hora,
-        'categoria': categoria,
-      };
+    'id': id,
+    'titulo': titulo,
+    'descripcion': descripcion,
+    'fecha': fecha.toIso8601String(),
+    'hora': hora,
+    'categoria': categoria,
+  };
 
   factory Evento.fromJson(Map<String, dynamic> json) => Evento(
-        id: json['id']?.toString() ??
-            DateTime.now().microsecondsSinceEpoch.toString(),
-        titulo: json['titulo']?.toString() ?? 'Actividad',
-        descripcion: json['descripcion']?.toString() ?? '',
-        fecha: DateTime.tryParse(json['fecha']?.toString() ?? '') ??
-            DateTime.now(),
-        hora: json['hora']?.toString() ?? '08:00',
-        categoria: categoriasCalendario.contains(json['categoria'])
-            ? json['categoria'].toString()
-            : 'Otro',
-      );
+    id:
+        json['id']?.toString() ??
+        DateTime.now().microsecondsSinceEpoch.toString(),
+    titulo: json['titulo']?.toString() ?? 'Actividad',
+    descripcion: json['descripcion']?.toString() ?? '',
+    fecha: DateTime.tryParse(json['fecha']?.toString() ?? '') ?? DateTime.now(),
+    hora: json['hora']?.toString() ?? '08:00',
+    categoria: categoriasCalendario.contains(json['categoria'])
+        ? json['categoria'].toString()
+        : 'Otro',
+  );
 }
 
 class CalendarioPage extends StatefulWidget {
@@ -124,10 +119,7 @@ class _CalendarioPageState extends State<CalendarioPage>
 
   List<Evento> _eventos = [];
 
-  DateTime _mesVisible = DateTime(
-    DateTime.now().year,
-    DateTime.now().month,
-  );
+  DateTime _mesVisible = DateTime(DateTime.now().year, DateTime.now().month);
 
   DateTime _seleccionada = DateUtils.dateOnly(DateTime.now());
 
@@ -154,9 +146,8 @@ class _CalendarioPageState extends State<CalendarioPage>
 
     Navigator.of(context).push(
       appPageRoute<void>(
-        builder: (context) => index == 2
-            ? const NotificacionesScreen()
-            : const PerfilPage(),
+        builder: (context) =>
+            index == 2 ? const NotificacionesScreen() : const PerfilPage(),
       ),
     );
   }
@@ -207,19 +198,17 @@ class _CalendarioPageState extends State<CalendarioPage>
 
       final android = _notificaciones
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
+            AndroidFlutterLocalNotificationsPlugin
+          >();
 
       await android?.requestNotificationsPermission();
 
       final ios = _notificaciones
           .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>();
+            IOSFlutterLocalNotificationsPlugin
+          >();
 
-      await ios?.requestPermissions(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+      await ios?.requestPermissions(alert: true, badge: true, sound: true);
 
       _notificacionesActivas = true;
     } catch (e) {
@@ -244,8 +233,7 @@ class _CalendarioPageState extends State<CalendarioPage>
     try {
       final partes = evento.hora.split(':');
       final hora = int.tryParse(partes[0]) ?? 8;
-      final minuto =
-          partes.length > 1 ? int.tryParse(partes[1]) ?? 0 : 0;
+      final minuto = partes.length > 1 ? int.tryParse(partes[1]) ?? 0 : 0;
 
       final inicio = DateTime(
         evento.fecha.year,
@@ -308,11 +296,7 @@ class _CalendarioPageState extends State<CalendarioPage>
         final lista = jsonDecode(datos) as List<dynamic>;
 
         _eventos = lista
-            .map(
-              (e) => Evento.fromJson(
-                Map<String, dynamic>.from(e as Map),
-              ),
-            )
+            .map((e) => Evento.fromJson(Map<String, dynamic>.from(e as Map)))
             .toList();
       }
     } catch (e) {
@@ -351,19 +335,19 @@ class _CalendarioPageState extends State<CalendarioPage>
       a.year == b.year && a.month == b.month && a.day == b.day;
 
   String _nombreMes(int mes) => const [
-        'Enero',
-        'Febrero',
-        'Marzo',
-        'Abril',
-        'Mayo',
-        'Junio',
-        'Julio',
-        'Agosto',
-        'Septiembre',
-        'Octubre',
-        'Noviembre',
-        'Diciembre',
-      ][mes - 1];
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre',
+  ][mes - 1];
 
   String _fechaLarga(DateTime fecha) =>
       '${fecha.day} de ${_nombreMes(fecha.month)} de ${fecha.year}';
@@ -371,11 +355,9 @@ class _CalendarioPageState extends State<CalendarioPage>
   List<Evento> get _eventosDelDia {
     final resultado = _eventos.where((e) {
       final coincideDia = _mismoDia(e.fecha, _seleccionada);
-      final coincideCategoria =
-          _filtro == 'Todos' || e.categoria == _filtro;
+      final coincideCategoria = _filtro == 'Todos' || e.categoria == _filtro;
 
-      final texto =
-          '${e.titulo} ${e.descripcion} ${e.categoria}'.toLowerCase();
+      final texto = '${e.titulo} ${e.descripcion} ${e.categoria}'.toLowerCase();
 
       final coincideTexto = texto.contains(_consulta.toLowerCase());
 
@@ -391,13 +373,9 @@ class _CalendarioPageState extends State<CalendarioPage>
 
   void _cambiarMes(int cambio) {
     setState(() {
-      _mesVisible = DateTime(
-        _mesVisible.year,
-        _mesVisible.month + cambio,
-      );
+      _mesVisible = DateTime(_mesVisible.year, _mesVisible.month + cambio);
 
-      final maximo =
-          DateTime(_mesVisible.year, _mesVisible.month + 1, 0).day;
+      final maximo = DateTime(_mesVisible.year, _mesVisible.month + 1, 0).day;
 
       _seleccionada = DateTime(
         _mesVisible.year,
@@ -425,10 +403,8 @@ class _CalendarioPageState extends State<CalendarioPage>
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => FormularioEvento(
-        evento: evento,
-        fechaInicial: _seleccionada,
-      ),
+      builder: (_) =>
+          FormularioEvento(evento: evento, fechaInicial: _seleccionada),
     );
 
     if (resultado == null || !mounted) return;
@@ -447,10 +423,7 @@ class _CalendarioPageState extends State<CalendarioPage>
       }
 
       _seleccionada = DateUtils.dateOnly(resultado.fecha);
-      _mesVisible = DateTime(
-        resultado.fecha.year,
-        resultado.fecha.month,
-      );
+      _mesVisible = DateTime(resultado.fecha.year, resultado.fecha.month);
     });
 
     await _guardarEventos();
@@ -483,9 +456,7 @@ class _CalendarioPageState extends State<CalendarioPage>
             child: const Text('Cancelar'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: rojoTec,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: rojoTec),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Eliminar'),
           ),
@@ -513,16 +484,12 @@ class _CalendarioPageState extends State<CalendarioPage>
         extendBody: true,
         body: Stack(
           children: [
-            const Positioned.fill(
-              child: _FondoLiquidGlass(),
-            ),
+            const Positioned.fill(child: _FondoLiquidGlass()),
             SafeArea(
               bottom: false,
               child: _cargando
                   ? const Center(
-                      child: CircularProgressIndicator(
-                        color: azulBrillante,
-                      ),
+                      child: CircularProgressIndicator(color: azulBrillante),
                     )
                   : LayoutBuilder(
                       builder: (context, constraints) {
@@ -536,19 +503,24 @@ class _CalendarioPageState extends State<CalendarioPage>
 
                         return Column(
                           children: [
-                            _construirAppBar(),
+                            Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 1400,
+                                ),
+                                child: _construirAppBar(),
+                              ),
+                            ),
                             Expanded(
                               child: ladoALado
                                   ? Center(
                                       child: ConstrainedBox(
-                                        constraints:
-                                            const BoxConstraints(
+                                        constraints: const BoxConstraints(
                                           maxWidth: 1400,
                                         ),
                                         child: LayoutBuilder(
                                           builder: (context, interno) {
-                                            final disponible =
-                                                interno.maxWidth;
+                                            final disponible = interno.maxWidth;
 
                                             final anchoCalendario =
                                                 (disponible * .44)
@@ -561,14 +533,13 @@ class _CalendarioPageState extends State<CalendarioPage>
                                               children: [
                                                 SizedBox(
                                                   width: anchoCalendario,
-                                                  child:
-                                                      SingleChildScrollView(
+                                                  child: SingleChildScrollView(
                                                     physics:
                                                         const BouncingScrollPhysics(),
                                                     padding:
                                                         const EdgeInsets.only(
-                                                      bottom: 24,
-                                                    ),
+                                                          bottom: 24,
+                                                        ),
                                                     child:
                                                         _construirCalendario(),
                                                   ),
@@ -584,18 +555,16 @@ class _CalendarioPageState extends State<CalendarioPage>
                                     )
                                   : SingleChildScrollView(
                                       primary: false,
-                                      physics:
-                                          const BouncingScrollPhysics(
-                                        parent:
-                                            AlwaysScrollableScrollPhysics(),
+                                      physics: const BouncingScrollPhysics(
+                                        parent: AlwaysScrollableScrollPhysics(),
                                       ),
                                       keyboardDismissBehavior:
                                           ScrollViewKeyboardDismissBehavior
                                               .onDrag,
                                       padding: EdgeInsets.only(
-                                        bottom: MediaQuery.viewPaddingOf(
-                                                  context,
-                                                ).bottom +
+                                        bottom:
+                                            MediaQuery.viewPaddingOf(context)
+                                                .bottom +
                                             110,
                                       ),
                                       child: Column(
@@ -647,9 +616,8 @@ class _CalendarioPageState extends State<CalendarioPage>
       padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
       child: Row(
         children: [
-          _botonCristal(
-            Icons.arrow_back_rounded,
-            () {
+          AppBackButton(
+            onPressed: () {
               if (widget.onBack != null) {
                 widget.onBack!();
               } else if (Navigator.of(context).canPop()) {
@@ -694,8 +662,7 @@ class _CalendarioPageState extends State<CalendarioPage>
     final hoy = DateUtils.dateOnly(DateTime.now());
     final primero = DateTime(_mesVisible.year, _mesVisible.month, 1);
     final desplazamiento = primero.weekday - 1;
-    final diasMes =
-        DateTime(_mesVisible.year, _mesVisible.month + 1, 0).day;
+    final diasMes = DateTime(_mesVisible.year, _mesVisible.month + 1, 0).day;
     final totalCeldas = desplazamiento + diasMes <= 35 ? 35 : 42;
 
     return LayoutBuilder(
@@ -787,14 +754,11 @@ class _CalendarioPageState extends State<CalendarioPage>
                 ),
                 const SizedBox(height: 10),
                 GridView.builder(
-                  key: ValueKey(
-                    '${_mesVisible.year}-${_mesVisible.month}',
-                  ),
+                  key: ValueKey('${_mesVisible.year}-${_mesVisible.month}'),
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: totalCeldas,
-                  gridDelegate:
-                      SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 7,
                     crossAxisSpacing: estrecho ? 2 : 4,
                     mainAxisSpacing: 5,
@@ -831,14 +795,8 @@ class _CalendarioPageState extends State<CalendarioPage>
                   alignment: WrapAlignment.center,
                   children: [
                     _Leyenda(color: rojoTec, texto: 'Hoy'),
-                    _Leyenda(
-                      color: azulBrillante,
-                      texto: 'Seleccionado',
-                    ),
-                    _Leyenda(
-                      color: Color(0xFF8051E8),
-                      texto: 'Licenciatura',
-                    ),
+                    _Leyenda(color: azulBrillante, texto: 'Seleccionado'),
+                    _Leyenda(color: Color(0xFF8051E8), texto: 'Licenciatura'),
                   ],
                 ),
               ],
@@ -853,12 +811,7 @@ class _CalendarioPageState extends State<CalendarioPage>
     final eventos = _eventosDelDia;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        5,
-        16,
-        dentroDesplazamiento ? 18 : 100,
-      ),
+      padding: EdgeInsets.fromLTRB(16, 5, 16, dentroDesplazamiento ? 18 : 100),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: dentroDesplazamiento
@@ -894,10 +847,7 @@ class _CalendarioPageState extends State<CalendarioPage>
                   ],
                 ),
               ),
-              _botonCristal(
-                Icons.filter_alt_rounded,
-                _mostrarFiltros,
-              ),
+              _botonCristal(Icons.filter_alt_rounded, _mostrarFiltros),
             ],
           ),
           const SizedBox(height: 12),
@@ -917,9 +867,8 @@ class _CalendarioPageState extends State<CalendarioPage>
                       icon: const Icon(Icons.close_rounded),
                     ),
               filled: true,
-              fillColor: Theme.of(context).colorScheme.surface.withValues(
-                    alpha: .8,
-                  ),
+              fillColor: Theme.of(context).colorScheme.surface
+                  .withValues(alpha: .8),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(18),
                 borderSide: BorderSide.none,
@@ -943,12 +892,9 @@ class _CalendarioPageState extends State<CalendarioPage>
                   child: ChoiceChip(
                     label: Text(categoria),
                     selected: activo,
-                    onSelected: (_) =>
-                        setState(() => _filtro = categoria),
+                    onSelected: (_) => setState(() => _filtro = categoria),
                     selectedColor: color,
-                    backgroundColor: Theme.of(context)
-                        .colorScheme
-                        .surface
+                    backgroundColor: Theme.of(context).colorScheme.surface
                         .withValues(alpha: .8),
                     labelStyle: TextStyle(
                       color: activo
@@ -989,10 +935,8 @@ class _CalendarioPageState extends State<CalendarioPage>
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.only(bottom: 20),
                       itemCount: eventos.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(height: 10),
-                      itemBuilder: (_, index) =>
-                          _tarjetaEvento(eventos[index]),
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (_, index) => _tarjetaEvento(eventos[index]),
                     ),
             ),
         ],
@@ -1049,9 +993,7 @@ class _CalendarioPageState extends State<CalendarioPage>
               onPressed: () => _abrirFormulario(),
               icon: const Icon(Icons.add_rounded),
               label: const Text('Crear actividad'),
-              style: FilledButton.styleFrom(
-                backgroundColor: azulTec,
-              ),
+              style: FilledButton.styleFrom(backgroundColor: azulTec),
             ),
           ],
         ),
@@ -1072,11 +1014,7 @@ class _CalendarioPageState extends State<CalendarioPage>
           color: rojoTec,
           borderRadius: BorderRadius.circular(23),
         ),
-        child: const Icon(
-          Icons.delete_rounded,
-          color: Colors.white,
-          size: 27,
-        ),
+        child: const Icon(Icons.delete_rounded, color: Colors.white, size: 27),
       ),
       confirmDismiss: (_) async {
         await _eliminar(evento);
@@ -1151,8 +1089,9 @@ class _CalendarioPageState extends State<CalendarioPage>
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
                             fontSize: 11,
                             height: 1.4,
                           ),
@@ -1172,8 +1111,9 @@ class _CalendarioPageState extends State<CalendarioPage>
                           Text(
                             evento.hora,
                             style: TextStyle(
-                              color:
-                                  Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                             ),
@@ -1211,14 +1151,8 @@ class _CalendarioPageState extends State<CalendarioPage>
                   }
                 },
                 itemBuilder: (_) => const [
-                  PopupMenuItem(
-                    value: 'editar',
-                    child: Text('Editar'),
-                  ),
-                  PopupMenuItem(
-                    value: 'eliminar',
-                    child: Text('Eliminar'),
-                  ),
+                  PopupMenuItem(value: 'editar', child: Text('Editar')),
+                  PopupMenuItem(value: 'eliminar', child: Text('Eliminar')),
                 ],
               ),
             ],
@@ -1287,29 +1221,32 @@ class _CalendarioPageState extends State<CalendarioPage>
 
   Widget _botonCristal(IconData icono, VoidCallback accion) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Material(
-          color: (dark ? const Color(0xFF26384A) : Colors.white)
-              .withValues(alpha: .75),
-          child: InkWell(
-            onTap: accion,
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: (dark ? const Color(0xFF52677D) : Colors.white)
-                      .withValues(alpha: .9),
+    return GelPress(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Material(
+            color: (dark ? const Color(0xFF26384A) : Colors.white).withValues(
+              alpha: .75,
+            ),
+            child: InkWell(
+              onTap: accion,
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: (dark ? const Color(0xFF52677D) : Colors.white)
+                        .withValues(alpha: .9),
+                  ),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(
-                icono,
-                color: Theme.of(context).colorScheme.onSurface,
-                size: 22,
+                child: Icon(
+                  icono,
+                  color: Theme.of(context).colorScheme.onSurface,
+                  size: 22,
+                ),
               ),
             ),
           ),
@@ -1346,10 +1283,12 @@ class _CalendarioPageState extends State<CalendarioPage>
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  (dark ? const Color(0xFF26384A) : Colors.white)
-                      .withValues(alpha: .88),
-                  (dark ? const Color(0xFF1D2C3B) : Colors.white)
-                      .withValues(alpha: .66),
+                  (dark ? const Color(0xFF26384A) : Colors.white).withValues(
+                    alpha: .88,
+                  ),
+                  (dark ? const Color(0xFF1D2C3B) : Colors.white).withValues(
+                    alpha: .66,
+                  ),
                   (dark ? const Color(0xFF192838) : const Color(0xFFEAF2FF))
                       .withValues(alpha: .65),
                 ],
@@ -1372,10 +1311,7 @@ class _Leyenda extends StatelessWidget {
   final Color color;
   final String texto;
 
-  const _Leyenda({
-    required this.color,
-    required this.texto,
-  });
+  const _Leyenda({required this.color, required this.texto});
 
   @override
   Widget build(BuildContext context) {
@@ -1385,10 +1321,7 @@ class _Leyenda extends StatelessWidget {
         Container(
           width: 7,
           height: 7,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 5),
         Text(
@@ -1439,18 +1372,12 @@ class _FondoLiquidGlass extends StatelessWidget {
         Positioned(
           top: 310,
           left: -130,
-          child: _halo(
-            260,
-            const Color(0xFF8DABFF).withValues(alpha: .13),
-          ),
+          child: _halo(260, const Color(0xFF8DABFF).withValues(alpha: .13)),
         ),
         Positioned(
           bottom: -100,
           right: -80,
-          child: _halo(
-            300,
-            const Color(0xFF9DCFFF).withValues(alpha: .17),
-          ),
+          child: _halo(300, const Color(0xFF9DCFFF).withValues(alpha: .17)),
         ),
       ],
     );
@@ -1462,10 +1389,7 @@ class _FondoLiquidGlass extends StatelessWidget {
       child: Container(
         width: size,
         height: size,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-        ),
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
     );
   }
@@ -1491,17 +1415,13 @@ class _CeldaDia extends StatefulWidget {
 }
 
 class _CeldaDiaState extends State<_CeldaDia> {
-  bool _presionado = false;
-
   @override
   Widget build(BuildContext context) {
     final seleccionado = widget.seleccionado;
     final esHoy = widget.esHoy;
     final dark = Theme.of(context).brightness == Brightness.dark;
 
-    return AnimatedScale(
-      scale: _presionado ? .9 : 1,
-      duration: const Duration(milliseconds: 120),
+    return GelPress(
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 230),
         decoration: BoxDecoration(
@@ -1509,27 +1429,23 @@ class _CeldaDiaState extends State<_CeldaDia> {
               ? const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF4389FF),
-                    azulBrillante,
-                    azulTec,
-                  ],
+                  colors: [Color(0xFF4389FF), azulBrillante, azulTec],
                 )
               : esHoy
-                  ? LinearGradient(
-                      colors: [
-                        const Color(0xFFFFF0F2),
-                        rojoTec.withValues(alpha: .07),
-                      ],
-                    )
-                  : null,
+              ? LinearGradient(
+                  colors: [
+                    const Color(0xFFFFF0F2),
+                    rojoTec.withValues(alpha: .07),
+                  ],
+                )
+              : null,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: seleccionado
                 ? Colors.white.withValues(alpha: .7)
                 : esHoy
-                    ? rojoTec.withValues(alpha: .65)
-                    : Colors.transparent,
+                ? rojoTec.withValues(alpha: .65)
+                : Colors.transparent,
           ),
           boxShadow: seleccionado
               ? [
@@ -1546,9 +1462,6 @@ class _CeldaDiaState extends State<_CeldaDia> {
           child: InkWell(
             borderRadius: BorderRadius.circular(14),
             onTap: widget.onTap,
-            onHighlightChanged: (valor) {
-              setState(() => _presionado = valor);
-            },
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -1558,10 +1471,10 @@ class _CeldaDiaState extends State<_CeldaDia> {
                     color: seleccionado
                         ? Colors.white
                         : esHoy
-                            ? rojoTec
-                            : dark
-                                ? const Color(0xFFE4EDF7)
-                                : azulTec,
+                        ? rojoTec
+                        : dark
+                        ? const Color(0xFFE4EDF7)
+                        : azulTec,
                     fontWeight: seleccionado || esHoy
                         ? FontWeight.w900
                         : FontWeight.w600,
@@ -1628,8 +1541,7 @@ class _FormularioEventoState extends State<FormularioEvento> {
     final evento = widget.evento;
 
     _titulo = TextEditingController(text: evento?.titulo ?? '');
-    _descripcion =
-        TextEditingController(text: evento?.descripcion ?? '');
+    _descripcion = TextEditingController(text: evento?.descripcion ?? '');
 
     _fecha = evento?.fecha ?? widget.fechaInicial;
 
@@ -1637,10 +1549,10 @@ class _FormularioEventoState extends State<FormularioEvento> {
 
     _hora = TimeOfDay(
       hour: (int.tryParse(partes[0]) ?? 8).clamp(0, 23),
-      minute: (partes.length > 1
-              ? int.tryParse(partes[1]) ?? 0
-              : 0)
-          .clamp(0, 59),
+      minute: (partes.length > 1 ? int.tryParse(partes[1]) ?? 0 : 0).clamp(
+        0,
+        59,
+      ),
     );
 
     _categoria = categoriasCalendario.contains(evento?.categoria)
@@ -1684,10 +1596,7 @@ class _FormularioEventoState extends State<FormularioEvento> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(17),
-        borderSide: const BorderSide(
-          color: azulBrillante,
-          width: 1.5,
-        ),
+        borderSide: const BorderSide(color: azulBrillante, width: 1.5),
       ),
     );
   }
@@ -1700,10 +1609,8 @@ class _FormularioEventoState extends State<FormularioEvento> {
       lastDate: DateTime(2100),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: Theme.of(ctx).colorScheme.copyWith(
-                primary: azulTec,
-                secondary: azulBrillante,
-              ),
+          colorScheme: Theme.of(ctx).colorScheme
+              .copyWith(secondary: azulBrillante),
         ),
         child: child!,
       ),
@@ -1720,10 +1627,8 @@ class _FormularioEventoState extends State<FormularioEvento> {
       initialTime: _hora,
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: azulTec,
-            secondary: azulBrillante,
-          ),
+          colorScheme: Theme.of(ctx).colorScheme
+              .copyWith(secondary: azulBrillante),
         ),
         child: child!,
       ),
@@ -1738,8 +1643,7 @@ class _FormularioEventoState extends State<FormularioEvento> {
     if (!_formKey.currentState!.validate()) return;
 
     final evento = Evento(
-      id: widget.evento?.id ??
-          DateTime.now().microsecondsSinceEpoch.toString(),
+      id: widget.evento?.id ?? DateTime.now().microsecondsSinceEpoch.toString(),
       titulo: _titulo.text.trim(),
       descripcion: _descripcion.text.trim(),
       fecha: DateUtils.dateOnly(_fecha),
@@ -1755,13 +1659,9 @@ class _FormularioEventoState extends State<FormularioEvento> {
     final editando = widget.evento != null;
 
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.viewInsetsOf(context).bottom,
-      ),
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(30),
-        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
           child: Container(
@@ -1839,8 +1739,8 @@ class _FormularioEventoState extends State<FormularioEvento> {
                         ),
                         validator: (valor) =>
                             valor == null || valor.trim().isEmpty
-                                ? 'Escribí el nombre de la actividad'
-                                : null,
+                            ? 'Escribí el nombre de la actividad'
+                            : null,
                       ),
                       const SizedBox(height: 10),
                       TextFormField(
@@ -1882,9 +1782,7 @@ class _FormularioEventoState extends State<FormularioEvento> {
 
                           final botonFecha = OutlinedButton.icon(
                             onPressed: _elegirFecha,
-                            icon: const Icon(
-                              Icons.calendar_month_rounded,
-                            ),
+                            icon: const Icon(Icons.calendar_month_rounded),
                             label: FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Text(_fechaTexto(_fecha)),
@@ -1895,9 +1793,7 @@ class _FormularioEventoState extends State<FormularioEvento> {
                                 vertical: 15,
                                 horizontal: 8,
                               ),
-                              side: const BorderSide(
-                                color: Color(0xFFD6E3F5),
-                              ),
+                              side: const BorderSide(color: Color(0xFFD6E3F5)),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(15),
                               ),
@@ -1906,9 +1802,7 @@ class _FormularioEventoState extends State<FormularioEvento> {
 
                           final botonHora = OutlinedButton.icon(
                             onPressed: _elegirHora,
-                            icon: const Icon(
-                              Icons.access_time_rounded,
-                            ),
+                            icon: const Icon(Icons.access_time_rounded),
                             label: Text(_horaTexto(_hora)),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: azulTec,
@@ -1916,9 +1810,7 @@ class _FormularioEventoState extends State<FormularioEvento> {
                                 vertical: 15,
                                 horizontal: 8,
                               ),
-                              side: const BorderSide(
-                                color: Color(0xFFD6E3F5),
-                              ),
+                              side: const BorderSide(color: Color(0xFFD6E3F5)),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(15),
                               ),
@@ -1927,8 +1819,7 @@ class _FormularioEventoState extends State<FormularioEvento> {
 
                           if (vertical) {
                             return Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.stretch,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 botonFecha,
                                 const SizedBox(height: 10),
@@ -1954,21 +1845,15 @@ class _FormularioEventoState extends State<FormularioEvento> {
                           style: FilledButton.styleFrom(
                             backgroundColor: azulTec,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 17,
-                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 17),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(17),
                             ),
                           ),
                           icon: const Icon(Icons.check_rounded),
                           label: Text(
-                            editando
-                                ? 'Guardar cambios'
-                                : 'Guardar actividad',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w800,
-                            ),
+                            editando ? 'Guardar cambios' : 'Guardar actividad',
+                            style: const TextStyle(fontWeight: FontWeight.w800),
                           ),
                         ),
                       ),

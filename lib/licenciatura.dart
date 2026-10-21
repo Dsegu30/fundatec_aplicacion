@@ -2,7 +2,11 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import 'app_theme.dart';
+import 'calendario.dart';
+import 'navegacion_glass.dart';
 import 'notificaciones.dart';
 import 'perfil.dart';
 
@@ -13,35 +17,56 @@ class LicenciaturaPage extends StatefulWidget {
   State<LicenciaturaPage> createState() => _LicenciaturaPageState();
 }
 
-class _LicenciaturaPageState extends State<LicenciaturaPage> {
+class _LicenciaturaPageState extends State<LicenciaturaPage>
+    with SingleTickerProviderStateMixin {
   static const Color primaryNavy = Color(0xFF061424);
   static const Color deepBlue = Color(0xFF0D233A);
-  static const Color backgroundGrey = Color(0xFFF6F8FA);
-  static const Color accentBlue = Color(0xFF176B87);
+  static const Color accentBlue = Color(0xFF0EA5E9);
+  static const double _anchoDisenoAmplio = 980;
 
-  static const String paginaOficial =
-      'https://tec.ac.cr/licenciatura-ingenieria-produccion-industrial';
+  static const String imagenPrograma =
+      'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1600&q=85';
 
-  static const String paginaGeneral =
-      'https://www.tec.ac.cr/ingenieria-produccion-industrial';
-
-  static const String paginaPreguntas =
-      'https://www.tec.ac.cr/ingenieria-produccion-industrial-preguntas-frecuentes';
+  static const String telefonoSecretaria = '2550-9202';
+  static const String whatsappSecretaria = '50625509202';
+  static const String correoSecretaria = 'asanabria@tec.ac.cr';
 
   int selectedIndex = 0;
 
-  // TARJETA SUPERIOR ORIGINAL CONSERVADA.
-  final List<_TecnicoData> tecnicos = const [
-    _TecnicoData(
-      titulo: 'Licenciatura en Producción Industrial',
-      descripcion:
-          'Desarrollá tus habilidades para mejorar procesos, administrar recursos y resolver retos de la industria.',
-      icono: Icons.precision_manufacturing_outlined,
-      colores: [Color(0xFF102A43), Color(0xFF176B87)],
-      imagen:
-          'https://images.unsplash.com/photo-1567789884554-0b844b597180?auto=format&fit=crop&w=900&q=85',
-    ),
-  ];
+  late final AnimationController _animationController;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    _fadeAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    );
+
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.035), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
+
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   void _mostrarMensaje(String mensaje) {
     if (!mounted) return;
@@ -53,8 +78,9 @@ class _LicenciaturaPageState extends State<LicenciaturaPage> {
           content: Text(mensaje),
           behavior: SnackBarBehavior.floating,
           backgroundColor: deepBlue,
+          elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(18),
           ),
           margin: const EdgeInsets.all(16),
         ),
@@ -64,20 +90,22 @@ class _LicenciaturaPageState extends State<LicenciaturaPage> {
   void _abrirPerfil() {
     HapticFeedback.selectionClick();
 
-    Navigator.push(
-      context,
-      MaterialPageRoute<void>(
-        builder: (_) => const PerfilPage(),
-      ),
-    );
+    Navigator.of(context)
+        .push(appPageRoute<void>(builder: (_) => const PerfilPage()));
+  }
+
+  void _abrirCalendario() {
+    HapticFeedback.selectionClick();
+
+    Navigator.of(context)
+        .push(appPageRoute<void>(builder: (_) => const CalendarioPage()));
   }
 
   void _abrirAvisos() {
     HapticFeedback.selectionClick();
 
-    Navigator.push(
-      context,
-      MaterialPageRoute<void>(
+    Navigator.of(context).push(
+      appPageRoute<void>(
         builder: (_) => NotificacionesScreen(
           onSectionSelected: (index) {
             if (!mounted) return;
@@ -86,9 +114,7 @@ class _LicenciaturaPageState extends State<LicenciaturaPage> {
               Navigator.of(context).popUntil((route) => route.isFirst);
             } else if (index == 1) {
               Navigator.of(context).pop();
-              _mostrarMensaje(
-                'El calendario estará disponible próximamente.',
-              );
+              _abrirCalendario();
             } else if (index == 3) {
               Navigator.of(context).pop();
               _abrirPerfil();
@@ -100,7 +126,6 @@ class _LicenciaturaPageState extends State<LicenciaturaPage> {
   }
 
   void _seleccionarSeccion(int index) {
-    setState(() => selectedIndex = index);
     HapticFeedback.selectionClick();
 
     switch (index) {
@@ -109,10 +134,7 @@ class _LicenciaturaPageState extends State<LicenciaturaPage> {
         break;
 
       case 1:
-        // No se conecta con el calendario anterior.
-        _mostrarMensaje(
-          'El calendario estará disponible próximamente.',
-        );
+        _abrirCalendario();
         break;
 
       case 2:
@@ -125,328 +147,796 @@ class _LicenciaturaPageState extends State<LicenciaturaPage> {
     }
   }
 
+  Future<void> _abrirWhatsAppSecretaria() async {
+    final uri = Uri.https('wa.me', '/$whatsappSecretaria', {
+      'text':
+          'Hola, quisiera información sobre la Licenciatura en Ingeniería '
+          'en Producción Industrial.',
+    });
+
+    try {
+      final abierto = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!abierto && mounted) {
+        _mostrarMensaje('No se pudo abrir WhatsApp en este dispositivo.');
+      }
+    } catch (_) {
+      if (mounted) {
+        _mostrarMensaje('No se pudo abrir WhatsApp en este dispositivo.');
+      }
+    }
+  }
+
+  void _agendarCita() {
+    _mostrarMensaje(
+      'Consultá con Secretaría cómo solicitar una cita: '
+      '$telefonoSecretaria o $correoSecretaria.',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: backgroundGrey,
-      body: SafeArea(
-        child: Column(
+    final screenSize = MediaQuery.sizeOf(context);
+
+    final compactLandscape =
+        screenSize.width > screenSize.height && screenSize.height < 560;
+
+    final horizontalInset = screenSize.width < 360 ? 14.0 : 18.0;
+
+    final maxContentWidth = screenSize.width >= 1360 ? 1400.0 : 1100.0;
+
+    return DisplayFeatureSubScreen(
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        extendBody: true,
+        body: Stack(
           children: [
-            Expanded(
-              child: CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: _construirEncabezado(),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 22, 16, 25),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          return _construirTarjeta(tecnicos[index]);
-                        },
-                        childCount: tecnicos.length,
-                      ),
+            const _FondoLiquidGlass(),
+
+            SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: CustomScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      slivers: [
+                        SliverPadding(
+                          padding: EdgeInsets.fromLTRB(
+                            horizontalInset,
+                            compactLandscape ? 10 : 16,
+                            horizontalInset,
+                            145,
+                          ),
+                          sliver: SliverToBoxAdapter(
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final ancho = constraints.maxWidth;
+
+                                final pantallaAmplia =
+                                    ancho >= _anchoDisenoAmplio;
+
+                                return Center(
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                      maxWidth: maxContentWidth,
+                                    ),
+                                    child: FadeTransition(
+                                      opacity: _fadeAnimation,
+                                      child: SlideTransition(
+                                        position: _slideAnimation,
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            _construirTarjetaPrincipal(
+                                              pantallaAmplia,
+                                            ),
+
+                                            SizedBox(
+                                              height: compactLandscape
+                                                  ? 22
+                                                  : 30,
+                                            ),
+
+                                            if (pantallaAmplia) ...[
+                                              Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Expanded(
+                                                    child: Column(
+                                                      children: [
+                                                        _construirDescripcion(),
+                                                        const SizedBox(
+                                                          height: 28,
+                                                        ),
+                                                        _construirCampoLaboral(),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 22),
+                                                  Expanded(
+                                                    child: Column(
+                                                      children: [
+                                                        _construirDatosBasicos(),
+                                                        const SizedBox(
+                                                          height: 28,
+                                                        ),
+                                                        _construirConsultas(),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ] else ...[
+                                              _construirDescripcion(),
+                                              const SizedBox(height: 29),
+                                              _construirDatosBasicos(),
+                                              const SizedBox(height: 29),
+                                              _construirCampoLaboral(),
+                                              const SizedBox(height: 29),
+                                              _construirConsultas(),
+                                            ],
+
+                                            const SizedBox(height: 22),
+
+                                            _construirPie(),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: _construirInformacion(),
                   ),
                 ],
               ),
             ),
-            _construirNavegacionInferior(),
+
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: _construirNavegacionInferior(),
+            ),
           ],
         ),
       ),
     );
   }
 
-  // ENCABEZADO.
-  Widget _construirEncabezado() {
+  Widget _circuloDecorativo({required double size, required Color color}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+    );
+  }
+
+  // ============================================================
+  // TARJETA PRINCIPAL CON IMAGEN DE INGENIERÍA INDUSTRIAL
+  // ============================================================
+
+  Widget _construirTarjetaPrincipal(bool pantallaAmplia) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(22, 12, 22, 25),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            primaryNavy,
-            deepBlue,
-            Color(0xFF1B3C73),
-          ],
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              IconButton(
-                tooltip: 'Avisos',
-                onPressed: _abrirAvisos,
-                icon: const Icon(
-                  Icons.notifications_none_rounded,
-                  color: Colors.white,
-                  size: 26,
-                ),
-              ),
-            ],
-          ),
-          const Text(
-            'Licenciatura',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 27,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.6,
-            ),
-          ),
-          const SizedBox(height: 7),
-          const Text(
-            'Conocé la carrera y encontrá la información que necesitás.',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 13,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 17),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 13,
-              vertical: 11,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.18),
-              ),
-            ),
-            child: const Row(
-              children: [
-                Icon(
-                  Icons.engineering_outlined,
-                  color: Colors.white,
-                  size: 20,
-                ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Escuela de Ingeniería en Producción Industrial',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+      constraints: BoxConstraints(minHeight: pantallaAmplia ? 320 : 268),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: primaryNavy.withValues(alpha: 0.24),
+            blurRadius: 36,
+            offset: const Offset(0, 16),
           ),
         ],
       ),
-    );
-  }
-
-  // TARJETA SUPERIOR ORIGINAL CONSERVADA.
-  Widget _construirTarjeta(_TecnicoData tecnico) {
-    const radio = 25.0;
-
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(radio),
-      child: InkWell(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          _mostrarMensaje(
-            'Seleccionaste: ${tecnico.titulo}',
-          );
-        },
-        borderRadius: BorderRadius.circular(radio),
-        child: Container(
-          height: 178,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(radio),
-            gradient: LinearGradient(
-              colors: tecnico.colores,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: tecnico.colores.first.withValues(alpha: 0.22),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(radio),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Positioned.fill(
-                  child: Opacity(
-                    opacity: 0.68,
-                    child: Image.network(
-                      tecnico.imagen,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.centerRight,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const SizedBox.shrink();
-                      },
-                    ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: Stack(
+          children: [
+            const Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF061424), Color(0xFF123D60)],
                   ),
                 ),
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
+              ),
+            ),
+            // Foto vertical a la derecha, con el tratamiento de las otras
+            // tarjetas que combinan fotografía y degradado azul.
+            Positioned.fill(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: FractionallySizedBox(
+                  widthFactor: pantallaAmplia ? 0.58 : 0.60,
+                  heightFactor: 1,
+                  child: ShaderMask(
+                    blendMode: BlendMode.dstIn,
+                    shaderCallback: (bounds) {
+                      return const LinearGradient(
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                         colors: [
-                          tecnico.colores.first.withValues(alpha: 0.88),
-                          tecnico.colores.first.withValues(alpha: 0.60),
-                          tecnico.colores.last.withValues(alpha: 0.18),
+                          Colors.transparent,
+                          Color(0xCCFFFFFF),
+                          Colors.white,
                         ],
-                        stops: const [0.0, 0.45, 1.0],
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: -35,
-                  right: 45,
-                  child: Container(
-                    width: 115,
-                    height: 115,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.05),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 17, 18, 17),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 53,
-                        height: 53,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(17),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Icon(
-                          tecnico.icono,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(width: 13),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              tecnico.titulo,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                height: 1.18,
+                        stops: [0, 0.24, 0.62],
+                      ).createShader(bounds);
+                    },
+                    child: Opacity(
+                      opacity: 0.94,
+                      child: Image.network(
+                        imagenPrograma,
+                        fit: BoxFit.cover,
+                        alignment: Alignment.center,
+                        filterQuality: FilterQuality.high,
+                        semanticLabel:
+                            'Fotografía de un entorno profesional relacionado '
+                            'con la Ingeniería en Producción Industrial',
+                        errorBuilder: (context, error, stackTrace) {
+                          return const DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(0xFF102A43), Color(0xFF176B87)],
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              tecnico.descripcion,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 11.5,
-                                height: 1.4,
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // Degradado que separa el texto de la imagen sin ocultarla.
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      primaryNavy.withValues(alpha: 0.82),
+                      primaryNavy.withValues(alpha: 0.62),
+                      deepBlue.withValues(alpha: 0.12),
+                    ],
+                    stops: const [0.0, 0.46, 1.0],
+                  ),
+                ),
+              ),
+            ),
+
+            // Detalles decorativos discretos sobre el borde de la fotografía.
+            Positioned(
+              top: -75,
+              right: -30,
+              child: Container(
+                width: 210,
+                height: 210,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.10),
+                    width: 1.3,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: -30,
+              right: 55,
+              child: Container(
+                width: 110,
+                height: 110,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: accentBlue.withValues(alpha: 0.05),
+                ),
+              ),
+            ),
+
+            if (pantallaAmplia)
+              Positioned(
+                right: 20,
+                bottom: 20,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: BackdropFilter(
+                    filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 9,
+                      ),
+                      decoration: BoxDecoration(
+                        color: primaryNavy.withValues(alpha: 0.46),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.24),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.precision_manufacturing_rounded,
+                            color: Color(0xFFBAE6FD),
+                            size: 16,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Producción industrial',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+            // Contenido alineado con el panel fotográfico.
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: pantallaAmplia ? 30 : 20,
+                vertical: pantallaAmplia ? 28 : 20,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 7,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            AppBackButton(
+                              onDarkBackground: true,
+                              onPressed: () {
+                                Navigator.of(context).maybePop();
+                              },
+                            ),
+                            const SizedBox(width: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 7,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(30),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.20),
+                                ),
+                              ),
+                              child: const Text(
+                                'LICENCIATURA',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.1,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
+
+                        SizedBox(height: pantallaAmplia ? 16 : 14),
+
+                        Text(
+                          'Licenciatura en Ingeniería en Producción Industrial',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: pantallaAmplia ? 30 : 22,
+                            fontWeight: FontWeight.w900,
+                            height: 1.12,
+                            letterSpacing: -0.7,
+                          ),
+                        ),
+
+                        SizedBox(height: pantallaAmplia ? 12 : 9),
+
+                        Text(
+                          'Procesos · Calidad · Productividad',
+                          style: TextStyle(
+                            color: const Color(0xFFD7F0FF),
+                            fontSize: pantallaAmplia ? 13 : 11,
+                            fontWeight: FontWeight.w700,
+                            height: 1.5,
+                          ),
+                        ),
+
+                        SizedBox(height: pantallaAmplia ? 18 : 14),
+
+                        // ETIQUETA CON EFECTO LIQUID GLASS
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(15),
+                          child: BackdropFilter(
+                            filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 13,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(15),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.22),
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.auto_awesome_rounded,
+                                    color: Color(0xFF7DD3FC),
+                                    size: 17,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      'Conocé tu futuro profesional',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  Expanded(
+                    flex: 3,
+                    child: const SizedBox.shrink(),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  // INFORMACIÓN BÁSICA DE LA CARRERA.
-  Widget _construirInformacion() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+  // ============================================================
+  // DESCRIPCIÓN DEL PROGRAMA
+  // ============================================================
+
+  Widget _construirDescripcion() {
+    final colors = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _tituloSeccion(
+          'Descripción del programa',
+          'Conocé el enfoque de la carrera',
+          Icons.school_outlined,
+        ),
+        const SizedBox(height: 14),
+        _tarjetaGlass(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: colors.primaryContainer,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Icon(
+                  Icons.insights_rounded,
+                  color: colors.onPrimaryContainer,
+                  size: 23,
+                ),
+              ),
+              const SizedBox(height: 15),
+              Text(
+                'Optimización e innovación en las organizaciones',
+                style: TextStyle(
+                  color: colors.onSurface,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'La Licenciatura en Producción Industrial prepara '
+                'profesionales para planificar, diseñar, implementar '
+                'y mejorar sistemas de producción de bienes y servicios. '
+                'Integra personas, materiales, equipos, tecnología e '
+                'información para optimizar recursos, impulsar la '
+                'productividad y promover la mejora continua.',
+                style: TextStyle(
+                  color: colors.onSurfaceVariant,
+                  fontSize: 12.5,
+                  height: 1.85,
+                ),
+              ),
+              const SizedBox(height: 17),
+              Divider(color: colors.outlineVariant, height: 1),
+              const SizedBox(height: 15),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: const [
+                  _EtiquetaTema(
+                    icono: Icons.check_circle_outline_rounded,
+                    texto: 'Calidad',
+                  ),
+                  _EtiquetaTema(
+                    icono: Icons.account_tree_outlined,
+                    texto: 'Procesos',
+                  ),
+                  _EtiquetaTema(
+                    icono: Icons.trending_up_rounded,
+                    texto: 'Productividad',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // DATOS GENERALES
+  // ============================================================
+
+  Widget _construirDatosBasicos() {
+    final colors = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _tituloSeccion(
+          'Características',
+          'Datos principales de la institución y el programa',
+          Icons.info_outline_rounded,
+        ),
+        const SizedBox(height: 14),
+        _tarjetaGlass(
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 47,
+                    height: 47,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFE2F3FD), Color(0xFFDCE7FF)],
+                      ),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: const Icon(
+                      Icons.account_balance_outlined,
+                      color: Color(0xFF1476A5),
+                      size: 23,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Tecnológico de Costa Rica',
+                          style: TextStyle(
+                            color: colors.onSurface,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          'Escuela de Ingeniería en Producción Industrial',
+                          style: TextStyle(
+                            color: colors.onSurfaceVariant,
+                            fontSize: 10.5,
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 19),
+              Divider(height: 1, color: colors.outlineVariant),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _datoBasico(
+                      Icons.location_on_outlined,
+                      'Sedes',
+                      'Cartago',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _datoBasico(
+                      Icons.schedule_rounded,
+                      'Grado académico',
+                      'Licenciatura',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 15),
+              _tarjetaInformacionAdicional(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _tarjetaInformacionAdicional() {
+    final colors = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHigh.withValues(
+          alpha: dark ? 0.78 : 0.66,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.outlineVariant),
+      ),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_outline_rounded, color: colors.primary, size: 19),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'El plan de estudios y sus requisitos pueden actualizarse.',
+                  style: TextStyle(
+                    color: colors.onSurfaceVariant,
+                    fontSize: 11,
+                    height: 1.65,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 13),
+          Divider(color: colors.outlineVariant, height: 1),
+          const SizedBox(height: 13),
+          _filaInformacion(
+            Icons.workspace_premium_outlined,
+            'Título universitario',
+            'Ingeniero (a) en Producción Industrial',
+          ),
+          const SizedBox(height: 12),
+          _filaInformacion(
+            Icons.calendar_view_week_rounded,
+            'Modalidad académica',
+            'Semestral',
+          ),
+          const SizedBox(height: 12),
+          _filaInformacion(Icons.wb_sunny_outlined, 'Jornada', 'Diurna'),
+        ],
+      ),
+    );
+  }
+
+  Widget _filaInformacion(IconData icono, String titulo, String valor) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icono, size: 18, color: colors.primary),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                titulo,
+                style: TextStyle(color: colors.onSurfaceVariant, fontSize: 11),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                valor,
+                style: TextStyle(
+                  color: colors.onSurface,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _datoBasico(IconData icono, String titulo, String valor) {
+    final colors = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      constraints: const BoxConstraints(minHeight: 133),
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHigh.withValues(
+          alpha: dark ? 0.78 : 0.66,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colors.outlineVariant),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _tituloSeccion(
-            'Información básica',
-            'Lo principal que necesitás conocer',
-            Icons.school_outlined,
+          Container(
+            width: 35,
+            height: 35,
+            decoration: BoxDecoration(
+              color: colors.primaryContainer,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icono, color: colors.onPrimaryContainer, size: 19),
           ),
-          const SizedBox(height: 14),
-          _construirDatosBasicos(),
-
-          const SizedBox(height: 25),
-
-          _tituloSeccion(
-            '¿De qué trata?',
-            'Una visión general de la carrera',
-            Icons.precision_manufacturing_outlined,
+          const SizedBox(height: 12),
+          Text(
+            titulo,
+            style: TextStyle(
+              color: colors.onSurfaceVariant,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          const SizedBox(height: 14),
-          _construirDescripcion(),
-
-          const SizedBox(height: 25),
-
-          _tituloSeccion(
-            'Campo laboral',
-            '¿Dónde podés trabajar?',
-            Icons.work_outline_rounded,
-          ),
-          const SizedBox(height: 14),
-          _construirCampoLaboral(),
-
-          const SizedBox(height: 25),
-
-          _construirConsultas(),
-
-          const SizedBox(height: 18),
-
-          const Center(
-            child: Text(
-              'Información de referencia. Consultá los canales oficiales del TEC.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Color(0xFF7A8795),
-                fontSize: 10.5,
-                height: 1.5,
-              ),
+          const SizedBox(height: 6),
+          Text(
+            valor,
+            style: TextStyle(
+              color: colors.onSurface,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              height: 1.5,
             ),
           ),
         ],
@@ -454,26 +944,369 @@ class _LicenciaturaPageState extends State<LicenciaturaPage> {
     );
   }
 
-  Widget _tituloSeccion(
-    String titulo,
-    String subtitulo,
-    IconData icono,
-  ) {
-    return Row(
+  // ============================================================
+  // CAMPO LABORAL
+  // ============================================================
+
+  Widget _construirCampoLaboral() {
+    final colors = Theme.of(context).colorScheme;
+
+    const areas = [
+      _CampoLaboralData(
+        'Gestión de operaciones',
+        Icons.precision_manufacturing_outlined,
+      ),
+      _CampoLaboralData(
+        'Mejoramiento de la calidad',
+        Icons.fact_check_outlined,
+      ),
+      _CampoLaboralData('Logística integral', Icons.local_shipping_outlined),
+      _CampoLaboralData('Optimización y simulación', Icons.trending_up_rounded),
+      _CampoLaboralData(
+        'Seguridad industrial y gestión ambiental',
+        Icons.health_and_safety_outlined,
+      ),
+      _CampoLaboralData(
+        'Administración de proyectos y finanzas',
+        Icons.assignment_outlined,
+      ),
+      _CampoLaboralData('Gestión del talento humano', Icons.groups_outlined),
+      _CampoLaboralData(
+        'Emprendimiento y consultoría',
+        Icons.lightbulb_outline_rounded,
+      ),
+      _CampoLaboralData('Inteligencia de negocios', Icons.analytics_outlined),
+    ];
+
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _tituloSeccion(
+          'Campo laboral',
+          'Áreas en las que podés desarrollarte',
+          Icons.work_outline_rounded,
+        ),
+        const SizedBox(height: 14),
+        _tarjetaGlass(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Posibles áreas de desarrollo profesional',
+                style: TextStyle(
+                  color: colors.onSurfaceVariant,
+                  fontSize: 11.5,
+                  height: 1.6,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ...areas.asMap().entries.map((entry) {
+                final index = entry.key;
+                final area = entry.value;
+
+                return Padding(
+                  padding: EdgeInsets.only(
+                    bottom: index == areas.length - 1 ? 0 : 10,
+                  ),
+                  child: _filaCampoLaboral(area),
+                );
+              }),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _filaCampoLaboral(_CampoLaboralData area) {
+    final colors = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHigh.withValues(
+          alpha: dark ? 0.76 : 0.62,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.outlineVariant),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: colors.primaryContainer,
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(area.icono, color: colors.onPrimaryContainer, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              area.titulo,
+              style: TextStyle(
+                color: colors.onSurface,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                height: 1.4,
+              ),
+            ),
+          ),
+          Icon(
+            Icons.arrow_forward_ios_rounded,
+            color: colors.onSurfaceVariant,
+            size: 13,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // CONTACTO Y CONSULTAS
+  // ============================================================
+
+  Widget _construirConsultas() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(27),
+        boxShadow: [
+          BoxShadow(
+            color: primaryNavy.withValues(alpha: 0.15),
+            blurRadius: 28,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(27),
+        child: Stack(
+          children: [
+            const Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF164C70),
+                      Color(0xFF0B263F),
+                      Color(0xFF061424),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: -65,
+              right: -45,
+              child: _circuloDecorativo(
+                size: 190,
+                color: Colors.white.withValues(alpha: 0.045),
+              ),
+            ),
+            Positioned(
+              top: 28,
+              right: 25,
+              child: Icon(
+                Icons.auto_awesome_rounded,
+                color: Colors.white.withValues(alpha: 0.20),
+                size: 27,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(21),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.18),
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.support_agent_rounded,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(height: 17),
+                  const Text(
+                    '¿Necesitás más información?',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.4,
+                      height: 1.3,
+                    ),
+                  ),
+                  const SizedBox(height: 9),
+                  Text(
+                    'Contactá a la secretaría para resolver tus dudas '
+                    'sobre la carrera, los requisitos y la oferta académica.',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.76),
+                      fontSize: 12,
+                      height: 1.75,
+                    ),
+                  ),
+                  const SizedBox(height: 21),
+                  _botonAccionGlass(
+                    texto: 'Contactar por WhatsApp',
+                    icono: Icons.chat_rounded,
+                    principal: true,
+                    onTap: _abrirWhatsAppSecretaria,
+                  ),
+                  const SizedBox(height: 11),
+                  _botonAccionGlass(
+                    texto: 'Consultar cómo solicitar una cita',
+                    icono: Icons.calendar_month_rounded,
+                    principal: false,
+                    onTap: _agendarCita,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _botonAccionGlass({
+    required String texto,
+    required IconData icono,
+    required bool principal,
+    required VoidCallback onTap,
+  }) {
+    final foreground = principal ? deepBlue : Colors.white;
+
+    return GelPress(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Material(
+            color: principal
+                ? Colors.white
+                : Colors.white.withValues(alpha: 0.08),
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                width: double.infinity,
+                constraints: const BoxConstraints(minHeight: 53),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 13,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: principal
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(icono, color: foreground, size: 20),
+                    const SizedBox(width: 11),
+                    Expanded(
+                      child: Text(
+                        texto,
+                        style: TextStyle(
+                          color: foreground,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      color: principal
+                          ? deepBlue
+                          : Colors.white.withValues(alpha: 0.75),
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _construirPie() {
+    final colors = Theme.of(context).colorScheme;
+
+    return Center(
+      child: Column(
+        children: [
+          Container(
+            width: 42,
+            height: 3,
+            decoration: BoxDecoration(
+              color: colors.outlineVariant,
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          const SizedBox(height: 13),
+          Text(
+            'TEC MÓVIL',
+            style: TextStyle(
+              color: colors.onSurfaceVariant,
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            'Tecnológico de Costa Rica',
+            style: TextStyle(color: colors.onSurfaceVariant, fontSize: 10),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // TÍTULOS Y TARJETAS
+  // ============================================================
+
+  Widget _tituloSeccion(String titulo, String subtitulo, IconData icono) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
         Container(
-          width: 43,
-          height: 43,
+          width: 46,
+          height: 46,
           decoration: BoxDecoration(
-            color: const Color(0xFFE5EFF7),
-            borderRadius: BorderRadius.circular(14),
+            color: colors.primaryContainer,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: accentBlue.withValues(alpha: 0.08),
+                blurRadius: 13,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          child: Icon(
-            icono,
-            color: accentBlue,
-            size: 23,
-          ),
+          child: Icon(icono, color: colors.onPrimaryContainer, size: 23),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -482,20 +1315,20 @@ class _LicenciaturaPageState extends State<LicenciaturaPage> {
             children: [
               Text(
                 titulo,
-                style: const TextStyle(
-                  color: primaryNavy,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.4,
+                style: TextStyle(
+                  color: colors.onSurface,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.35,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 subtitulo,
-                style: const TextStyle(
-                  color: Color(0xFF7A8795),
-                  fontSize: 11.5,
-                  height: 1.4,
+                style: TextStyle(
+                  color: colors.onSurfaceVariant,
+                  fontSize: 10.5,
+                  height: 1.45,
                 ),
               ),
             ],
@@ -505,586 +1338,208 @@ class _LicenciaturaPageState extends State<LicenciaturaPage> {
     );
   }
 
-  Widget _construirDatosBasicos() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: const Color(0xFFE3EAF0),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: primaryNavy.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          const Row(
-            children: [
-              Icon(
-                Icons.account_balance_outlined,
-                color: accentBlue,
-                size: 23,
+  Widget _tarjetaGlass({required Widget child}) {
+    final colors = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(25),
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: colors.surfaceContainerHigh.withValues(
+              alpha: dark ? 0.78 : 0.70,
+            ),
+            borderRadius: BorderRadius.circular(25),
+            border: Border.all(
+              color: colors.outlineVariant.withValues(
+                alpha: dark ? 0.72 : 0.68,
               ),
-              SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Tecnológico de Costa Rica',
-                  style: TextStyle(
-                    color: primaryNavy,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                  ),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: (dark ? Colors.black : primaryNavy).withValues(
+                  alpha: dark ? 0.20 : 0.08,
                 ),
+                blurRadius: 26,
+                offset: const Offset(0, 10),
               ),
             ],
           ),
-          const SizedBox(height: 15),
-          const Divider(
-            color: Color(0xFFEDF1F5),
-            height: 1,
-          ),
-          const SizedBox(height: 15),
-          Row(
-            children: [
-              Expanded(
-                child: _datoBasico(
-                  Icons.workspace_premium_outlined,
-                  'Grado',
-                  'Licenciatura',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _datoBasico(
-                  Icons.location_on_outlined,
-                  'Sedes indicadas',
-                  'Cartago ',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0F5F8),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.info_outline_rounded,
-                  color: accentBlue,
-                  size: 20,
-                ),
-                SizedBox(width: 9),
-                Expanded(
-                  child: Text(
-                    'Los requisitos, horarios y la oferta vigente '
-                    'se deben confirmar directamente con el TEC.',
-                    style: TextStyle(
-                      color: Color(0xFF486075),
-                      fontSize: 11.5,
-                      height: 1.5,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _datoBasico(
-    IconData icono,
-    String titulo,
-    String valor,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF6F8FA),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            icono,
-            color: accentBlue,
-            size: 21,
-          ),
-          const SizedBox(height: 9),
-          Text(
-            titulo,
-            style: const TextStyle(
-              color: Color(0xFF7A8795),
-              fontSize: 10.5,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            valor,
-            style: const TextStyle(
-              color: primaryNavy,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              height: 1.35,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _construirDescripcion() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: const Color(0xFFE3EAF0),
-        ),
-      ),
-      child: const Text(
-        'La Ingeniería en Producción Industrial busca mejorar '
-        'la forma en que las organizaciones producen bienes y '
-        'ofrecen servicios. Combina conocimientos de procesos, '
-        'calidad, logística, administración y tecnología para '
-        'aprovechar mejor los recursos y resolver problemas.',
-        style: TextStyle(
-          color: Color(0xFF617285),
-          fontSize: 12.5,
-          height: 1.7,
+          child: child,
         ),
       ),
     );
   }
 
-  Widget _construirCampoLaboral() {
-    const areas = [
-      _CampoLaboralData(
-        titulo: 'Producción',
-        icono: Icons.precision_manufacturing_outlined,
-      ),
-      _CampoLaboralData(
-        titulo: 'Control de calidad',
-        icono: Icons.fact_check_outlined,
-      ),
-      _CampoLaboralData(
-        titulo: 'Logística',
-        icono: Icons.local_shipping_outlined,
-      ),
-      _CampoLaboralData(
-        titulo: 'Gestión de proyectos',
-        icono: Icons.assignment_outlined,
-      ),
-      _CampoLaboralData(
-        titulo: 'Mejora de procesos',
-        icono: Icons.trending_up_rounded,
-      ),
-      _CampoLaboralData(
-        titulo: 'Análisis de operaciones',
-        icono: Icons.analytics_outlined,
-      ),
-    ];
+  // ============================================================
+  // NAVEGACIÓN INFERIOR LIQUID GLASS
+  // ============================================================
 
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: const Color(0xFFE3EAF0),
-        ),
-      ),
-      child: Wrap(
-        spacing: 9,
-        runSpacing: 10,
-        children: areas.map((area) {
-          return Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 11,
-              vertical: 10,
-            ),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0F5F8),
-              borderRadius: BorderRadius.circular(13),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  area.icono,
-                  color: accentBlue,
-                  size: 17,
-                ),
-                const SizedBox(width: 7),
-                Text(
-                  area.titulo,
-                  style: const TextStyle(
-                    color: Color(0xFF31546E),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
+  Widget _construirNavegacionInferior() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final ancho = constraints.maxWidth;
+        final alto = constraints.maxHeight;
 
-  // ACCESO A CONSULTAS E INFORMACIÓN OFICIAL.
-  Widget _construirConsultas() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF123D60),
-            Color(0xFF0B263F),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(23),
-        boxShadow: [
-          BoxShadow(
-            color: primaryNavy.withValues(alpha: 0.13),
-            blurRadius: 18,
-            offset: const Offset(0, 7),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(
-            Icons.question_answer_outlined,
-            color: Colors.white,
-            size: 28,
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            '¿Tenés dudas sobre la carrera?',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 7),
-          const Text(
-            'Consultá la información oficial, los requisitos '
-            'de ingreso y las preguntas frecuentes del TEC.',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-              height: 1.6,
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _mostrarInformacionOficial,
-              icon: const Icon(
-                Icons.open_in_new_rounded,
-                size: 18,
-              ),
-              label: const Text('Consultar información'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFF123D60),
-                minimumSize: const Size(double.infinity, 48),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                textStyle: const TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _mostrarInformacionOficial() {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
-          ),
-          title: const Text(
-            'Información oficial',
-            style: TextStyle(
-              color: primaryNavy,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Seleccioná el enlace que necesitás consultar. '
-                  'Podés copiarlo y abrirlo desde el navegador.',
-                  style: TextStyle(
-                    height: 1.5,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                _enlaceOficial(
-                  dialogContext,
-                  'Información de la licenciatura',
-                  paginaOficial,
-                ),
-                const SizedBox(height: 16),
-                _enlaceOficial(
-                  dialogContext,
-                  'Información general de la carrera',
-                  paginaGeneral,
-                ),
-                const SizedBox(height: 16),
-                _enlaceOficial(
-                  dialogContext,
-                  'Preguntas frecuentes',
-                  paginaPreguntas,
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cerrar'),
-            ),
-          ],
+        return NavegacionGlass(
+          selectedIndex: selectedIndex,
+          onSelected: _seleccionarSeccion,
+          wide: ancho >= 720,
+          compact: ancho > alto && ancho < 720,
         );
       },
     );
   }
+}
 
-  Widget _enlaceOficial(
-    BuildContext dialogContext,
-    String titulo,
-    String enlace,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          titulo,
-          style: const TextStyle(
-            color: primaryNavy,
-            fontWeight: FontWeight.w800,
-            fontSize: 12.5,
-          ),
-        ),
-        const SizedBox(height: 5),
-        SelectableText(
-          enlace,
-          style: const TextStyle(
-            color: accentBlue,
-            fontSize: 11.5,
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 5),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton.icon(
-            onPressed: () async {
-              await Clipboard.setData(
-                ClipboardData(text: enlace),
-              );
+// ============================================================
+// FONDO LIQUID GLASS
+// ============================================================
 
-              if (!dialogContext.mounted) return;
+class _FondoLiquidGlass extends StatelessWidget {
+  const _FondoLiquidGlass();
 
-              Navigator.pop(dialogContext);
-              _mostrarMensaje('Enlace copiado al portapapeles.');
-            },
-            icon: const Icon(
-              Icons.copy_rounded,
-              size: 16,
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Stack(
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: dark
+                      ? const [
+                          Color(0xFF091522),
+                          Color(0xFF10243A),
+                          Color(0xFF142B3C),
+                        ]
+                      : const [
+                          Color(0xFFF5F9FF),
+                          Color(0xFFE5F1FC),
+                          Color(0xFFF4F8FD),
+                        ],
+                ),
+              ),
             ),
-            label: const Text('Copiar enlace'),
-          ),
+            Positioned(
+              top: -85,
+              right: -115,
+              child: _burbuja(
+                size: 350,
+                color:
+                    (dark ? const Color(0xFF1687F6) : const Color(0xFF55A9F1))
+                        .withValues(alpha: dark ? 0.30 : 0.35),
+              ),
+            ),
+            Positioned(
+              top: 330,
+              left: -155,
+              child: _burbuja(
+                size: 330,
+                color:
+                    (dark ? const Color(0xFF00B8A9) : const Color(0xFF39C8C0))
+                        .withValues(alpha: dark ? 0.24 : 0.28),
+              ),
+            ),
+            Positioned(
+              bottom: -95,
+              right: -70,
+              child: _burbuja(
+                size: 290,
+                color: const Color(0xFF7C6BF2)
+                    .withValues(alpha: dark ? 0.18 : 0.15),
+              ),
+            ),
+            Positioned(
+              bottom: 140,
+              left: 45,
+              child: _burbuja(
+                size: 125,
+                color: const Color(0xFF8FD8F3)
+                    .withValues(alpha: dark ? 0.14 : 0.26),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  // NAVEGACIÓN INFERIOR.
-  Widget _construirNavegacionInferior() {
-    const elementos = [
-      _NavegacionItem(Icons.home_rounded, 'Inicio'),
-      _NavegacionItem(Icons.calendar_month_rounded, 'Calendario'),
-      _NavegacionItem(Icons.notifications_none_rounded, 'Avisos'),
-      _NavegacionItem(Icons.person_outline_rounded, 'Perfil'),
-    ];
-
-    return SafeArea(
-      top: false,
-      minimum: const EdgeInsets.fromLTRB(14, 4, 14, 10),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: BackdropFilter(
-          filter: ui.ImageFilter.blur(
-            sigmaX: 20,
-            sigmaY: 20,
-          ),
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 7,
-              vertical: 7,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.90),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: Colors.white,
-                width: 1.2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: primaryNavy.withValues(alpha: 0.10),
-                  blurRadius: 24,
-                  offset: const Offset(0, 7),
-                ),
-              ],
-            ),
-            child: Row(
-              children: List.generate(elementos.length, (index) {
-                final seleccionado = selectedIndex == index;
-                final elemento = elementos[index];
-
-                return Expanded(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => _seleccionarSeccion(index),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeOutCubic,
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: seleccionado
-                            ? const Color(0xFFE3F0FB)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(23),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            curve: Curves.easeOutCubic,
-                            width: seleccionado ? 42 : 38,
-                            height: 31,
-                            decoration: BoxDecoration(
-                              gradient: seleccionado
-                                  ? const LinearGradient(
-                                      colors: [
-                                        Color(0xFF17466D),
-                                        Color(0xFF0B263F),
-                                      ],
-                                    )
-                                  : null,
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: Icon(
-                              elemento.icono,
-                              color: seleccionado
-                                  ? Colors.white
-                                  : const Color(0xFF657487),
-                              size: 21,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            elemento.titulo,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 10.5,
-                              fontWeight: seleccionado
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
-                              color: seleccionado
-                                  ? const Color(0xFF123D60)
-                                  : const Color(0xFF64748B),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ),
-        ),
+  Widget _burbuja({required double size, required Color color}) {
+    return ImageFiltered(
+      imageFilter: ui.ImageFilter.blur(sigmaX: 42, sigmaY: 42),
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
       ),
     );
   }
 }
 
-class _TecnicoData {
-  final String titulo;
-  final String descripcion;
-  final IconData icono;
-  final List<Color> colores;
-  final String imagen;
+// ============================================================
+// ETIQUETAS DE TEMAS
+// ============================================================
 
-  const _TecnicoData({
-    required this.titulo,
-    required this.descripcion,
-    required this.icono,
-    required this.colores,
-    required this.imagen,
-  });
+class _EtiquetaTema extends StatelessWidget {
+  final IconData icono;
+  final String texto;
+
+  const _EtiquetaTema({required this.icono, required this.texto});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            colors.surfaceContainer.withValues(alpha: dark ? 0.78 : 0.65),
+            colors.surfaceContainerHigh.withValues(alpha: dark ? 0.72 : 0.60),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: colors.outlineVariant),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icono, color: colors.primary, size: 15),
+          const SizedBox(width: 6),
+          Text(
+            texto,
+            style: TextStyle(
+              color: colors.onSurface,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _NavegacionItem {
-  final IconData icono;
-  final String titulo;
-
-  const _NavegacionItem(this.icono, this.titulo);
-}
+// ============================================================
+// MODELOS AUXILIARES
+// ============================================================
 
 class _CampoLaboralData {
   final String titulo;
   final IconData icono;
 
-  const _CampoLaboralData({
-    required this.titulo,
-    required this.icono,
-  });
+  const _CampoLaboralData(this.titulo, this.icono);
 }

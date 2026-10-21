@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AppThemePreference extends InheritedWidget {
   final ThemeMode themeMode;
@@ -391,11 +392,202 @@ class _ThemeTransitionPainter extends CustomPainter {
   }
 }
 
+/// Botón de regreso compartido para las secciones de la aplicación.
+class AppBackButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final bool onDarkBackground;
+
+  const AppBackButton({
+    super.key,
+    required this.onPressed,
+    this.onDarkBackground = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final foreground = onDarkBackground ? Colors.white : colors.onSurface;
+    final topFill = onDarkBackground
+        ? Colors.white.withValues(alpha: 0.20)
+        : colors.surfaceContainerHigh.withValues(alpha: 0.88);
+    final bottomFill = onDarkBackground
+        ? Colors.white.withValues(alpha: 0.10)
+        : colors.surfaceContainerHigh.withValues(alpha: 0.70);
+    final outline = onDarkBackground
+        ? Colors.white.withValues(alpha: 0.32)
+        : colors.outlineVariant.withValues(alpha: 0.78);
+
+    return Tooltip(
+      message: 'Atrás',
+      child: Semantics(
+        button: true,
+        label: 'Atrás',
+        child: GelPress(
+          child: SizedBox.square(
+            dimension: 48,
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(17),
+              child: Ink(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [topFill, bottomFill],
+                  ),
+                  borderRadius: BorderRadius.circular(17),
+                  border: Border.all(color: outline),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: onDarkBackground ? 0.12 : 0.06,
+                      ),
+                      blurRadius: 14,
+                      offset: const Offset(0, 5),
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withValues(
+                        alpha: onDarkBackground ? 0.13 : 0.68,
+                      ),
+                      blurRadius: 4,
+                      offset: const Offset(0, -1),
+                    ),
+                  ],
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(17),
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    onPressed();
+                  },
+                  child: Center(
+                    child: Icon(
+                      Icons.arrow_back_rounded,
+                      color: foreground,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+abstract final class AppMotion {
+  static const Duration pageTransitionDuration = Duration(milliseconds: 560);
+  static const Duration sectionTransitionDuration = Duration(milliseconds: 520);
+  static const Duration gelPressDuration = Duration(milliseconds: 110);
+  static const Duration gelReleaseDuration = Duration(milliseconds: 460);
+  static const Curve transitionCurve = Curves.easeInOutCubicEmphasized;
+  static const Curve pageOpenCurve = Curves.easeOutBack;
+  static const Curve gelPressCurve = Curves.easeOutCubic;
+  static const Curve gelReleaseCurve = Curves.elasticOut;
+  static const double pageSlideDistance = 0.046;
+  static const double pageOpenScale = 0.90;
+  static const double sectionOpenScale = 0.95;
+  static const double pageRevealRadius = 36;
+  static const double gelStretchX = 0.032;
+  static const double gelSquashY = 0.085;
+}
+
+/// Adds a soft horizontal stretch and vertical squash to a tappable child.
+class GelPress extends StatefulWidget {
+  final Widget child;
+  final bool enabled;
+
+  const GelPress({super.key, required this.child, this.enabled = true});
+
+  @override
+  State<GelPress> createState() => _GelPressState();
+}
+
+class _GelPressState extends State<GelPress>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      lowerBound: -0.12,
+      upperBound: 1,
+      value: 0,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant GelPress oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.enabled && !widget.enabled) {
+      _controller.animateBack(
+        0,
+        duration: AppMotion.gelReleaseDuration,
+        curve: AppMotion.gelReleaseCurve,
+      );
+    }
+  }
+
+  void _press(PointerDownEvent event) {
+    if (!widget.enabled) return;
+    _controller.animateTo(
+      1,
+      duration: AppMotion.gelPressDuration,
+      curve: AppMotion.gelPressCurve,
+    );
+  }
+
+  void _release(PointerEvent event) {
+    if (!widget.enabled) return;
+    _controller.animateBack(
+      0,
+      duration: AppMotion.gelReleaseDuration,
+      curve: AppMotion.gelReleaseCurve,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: widget.enabled ? _press : null,
+      onPointerUp: widget.enabled ? _release : null,
+      onPointerCancel: widget.enabled ? _release : null,
+      child: AnimatedBuilder(
+        animation: _controller,
+        child: widget.child,
+        builder: (context, child) {
+          final press = _controller.value;
+          return Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.diagonal3Values(
+              1 + AppMotion.gelStretchX * press,
+              1 - AppMotion.gelSquashY * press,
+              1,
+            ),
+            child: child,
+          );
+        },
+      ),
+    );
+  }
+}
+
 /// Usá esta ruta para las pantallas abiertas con Navigator.push.
 Route<T> appPageRoute<T>({required WidgetBuilder builder}) {
   return PageRouteBuilder<T>(
-    transitionDuration: const Duration(milliseconds: 420),
-    reverseTransitionDuration: const Duration(milliseconds: 350),
+    transitionDuration: AppMotion.pageTransitionDuration,
+    reverseTransitionDuration: AppMotion.pageTransitionDuration,
     pageBuilder: (context, animation, secondaryAnimation) {
       return builder(context);
     },
@@ -405,24 +597,62 @@ Route<T> appPageRoute<T>({required WidgetBuilder builder}) {
         curve: Curves.easeOutCubic,
         reverseCurve: Curves.easeInCubic,
       );
+      final enterSpring = CurvedAnimation(
+        parent: animation,
+        curve: AppMotion.pageOpenCurve,
+        reverseCurve: Curves.easeInCubic,
+      );
 
       final exit = CurvedAnimation(
         parent: secondaryAnimation,
-        curve: Curves.easeInOutCubic,
+        curve: Curves.easeInCubic,
+        reverseCurve: Curves.easeOutCubic,
       );
 
-      return FadeTransition(
-        opacity: enter,
-        child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0.035, 0.012),
-            end: Offset.zero,
-          ).animate(enter),
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: Offset.zero,
+          end: const Offset(-AppMotion.pageSlideDistance * 0.65, 0),
+        ).animate(exit),
+        child: FadeTransition(
+          opacity: ReverseAnimation(exit),
           child: ScaleTransition(
-            scale: Tween<double>(begin: 0.985, end: 1).animate(enter),
+            scale: Tween<double>(begin: 1, end: 0.975).animate(exit),
             child: FadeTransition(
-              opacity: ReverseAnimation(exit),
-              child: child,
+              opacity: enter,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(AppMotion.pageSlideDistance, 0.012),
+                  end: Offset.zero,
+                ).animate(enter),
+                child: ScaleTransition(
+                  scale: Tween<double>(
+                    begin: AppMotion.pageOpenScale,
+                    end: 1,
+                  ).animate(enterSpring),
+                  child: AnimatedBuilder(
+                    animation: enter,
+                    child: child,
+                    builder: (context, page) {
+                      final reveal = (1 - enter.value).clamp(0.0, 1.0);
+                      return Transform(
+                        alignment: Alignment.center,
+                        transform: Matrix4.diagonal3Values(
+                          1 + AppMotion.gelStretchX * reveal,
+                          1 - AppMotion.gelSquashY * reveal,
+                          1,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(
+                            AppMotion.pageRevealRadius * reveal,
+                          ),
+                          child: page,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
             ),
           ),
         ),
@@ -448,15 +678,63 @@ class FadeThroughPageTransitionsBuilder extends PageTransitionsBuilder {
       curve: Curves.easeOutCubic,
       reverseCurve: Curves.easeInCubic,
     );
+    final spring = CurvedAnimation(
+      parent: animation,
+      curve: AppMotion.pageOpenCurve,
+      reverseCurve: Curves.easeInCubic,
+    );
+    final exiting = CurvedAnimation(
+      parent: secondaryAnimation,
+      curve: Curves.easeInCubic,
+      reverseCurve: Curves.easeOutCubic,
+    );
 
-    return FadeTransition(
-      opacity: curved,
-      child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0.025, 0),
-          end: Offset.zero,
-        ).animate(curved),
-        child: child,
+    return SlideTransition(
+      position: Tween<Offset>(
+        begin: Offset.zero,
+        end: const Offset(-AppMotion.pageSlideDistance * 0.65, 0),
+      ).animate(exiting),
+      child: FadeTransition(
+        opacity: ReverseAnimation(exiting),
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 1, end: 0.975).animate(exiting),
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(AppMotion.pageSlideDistance, 0.012),
+              end: Offset.zero,
+            ).animate(curved),
+            child: FadeTransition(
+              opacity: curved,
+              child: ScaleTransition(
+                scale: Tween<double>(
+                  begin: AppMotion.pageOpenScale,
+                  end: 1,
+                ).animate(spring),
+                child: AnimatedBuilder(
+                  animation: curved,
+                  child: child,
+                  builder: (context, page) {
+                    final reveal = (1 - curved.value).clamp(0.0, 1.0);
+                    return Transform(
+                      alignment: Alignment.center,
+                      transform: Matrix4.diagonal3Values(
+                        1 + AppMotion.gelStretchX * reveal,
+                        1 - AppMotion.gelSquashY * reveal,
+                        1,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(
+                          AppMotion.pageRevealRadius * reveal,
+                        ),
+                        child: page,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

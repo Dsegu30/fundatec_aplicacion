@@ -154,10 +154,8 @@ class PerfilPage extends StatelessWidget {
   Widget _barraSuperior(BuildContext context) {
     return Row(
       children: [
-        _botonCristal(
-          context: context,
-          icono: Icons.arrow_back_ios_new_rounded,
-          alPresionar: () {
+        AppBackButton(
+          onPressed: () {
             if (onBack != null) {
               onBack!();
             } else if (Navigator.of(context).canPop()) {
@@ -179,34 +177,6 @@ class PerfilPage extends StatelessWidget {
         ),
         const SizedBox(width: 48),
       ],
-    );
-  }
-
-  Widget _botonCristal({
-    required BuildContext context,
-    required IconData icono,
-    required VoidCallback alPresionar,
-  }) {
-    return _Cristal(
-      radio: 24,
-      padding: EdgeInsets.zero,
-      child: Material(
-        color: Colors.transparent,
-        shape: const CircleBorder(),
-        child: InkWell(
-          onTap: alPresionar,
-          customBorder: const CircleBorder(),
-          child: SizedBox(
-            width: 48,
-            height: 48,
-            child: Icon(
-              icono,
-              color: Theme.of(context).colorScheme.primary,
-              size: 20,
-            ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -341,108 +311,111 @@ class PerfilPage extends StatelessWidget {
     final descripcion = opcion.titulo == 'Configuración'
         ? 'Modo ${_themeModeLabel(themeMode)}'
         : opcion.descripcion;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(17),
-        splashColor: azulBrillante.withValues(alpha: 0.07),
-        highlightColor: azulBrillante.withValues(alpha: 0.035),
-        onTap: opcion.titulo == 'Configuración'
-            ? null
-            : () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      '${opcion.titulo}: función pendiente de configurar.',
+    return GelPress(
+      enabled: opcion.titulo != 'Configuración',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(17),
+          splashColor: azulBrillante.withValues(alpha: 0.07),
+          highlightColor: azulBrillante.withValues(alpha: 0.035),
+          onTap: opcion.titulo == 'Configuración'
+              ? null
+              : () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '${opcion.titulo}: función pendiente de configurar.',
+                      ),
+                      behavior: SnackBarBehavior.floating,
+                      backgroundColor: azulTec,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
-                    behavior: SnackBarBehavior.floating,
-                    backgroundColor: azulTec,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                  );
+                },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        dark
+                            ? const Color(0xFF26394D)
+                            : Colors.white.withValues(alpha: 0.98),
+                        dark
+                            ? const Color(0xFF1C2B3A)
+                            : const Color(0xFFEAF2FF).withValues(alpha: 0.85),
+                      ],
                     ),
-                  ),
-                );
-              },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      dark
-                          ? const Color(0xFF26394D)
-                          : Colors.white.withValues(alpha: 0.98),
-                      dark
-                          ? const Color(0xFF1C2B3A)
-                          : const Color(0xFFEAF2FF).withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: azulTec.withValues(alpha: 0.10)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: azulTec.withValues(alpha: 0.045),
+                        blurRadius: 9,
+                        offset: const Offset(0, 3),
+                      ),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: azulTec.withValues(alpha: 0.10)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: azulTec.withValues(alpha: 0.045),
-                      blurRadius: 9,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+                  child: Icon(
+                    opcion.icono,
+                    color: theme.colorScheme.primary,
+                    size: 21,
+                  ),
                 ),
-                child: Icon(
-                  opcion.icono,
-                  color: theme.colorScheme.primary,
-                  size: 21,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      opcion.titulo,
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurface,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      descripcion,
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontSize: 12,
-                        height: 1.3,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              if (opcion.titulo == 'Configuración')
-                ThemeModeSwitch(
-                  key: const ValueKey('theme-mode-switch'),
-                  value: themeMode == ThemeMode.dark,
-                  onChanged: themePreference == null
-                      ? null
-                      : (isDark) => themePreference.onThemeModeChanged(
-                          isDark ? ThemeMode.dark : ThemeMode.light,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        opcion.titulo,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.2,
                         ),
-                )
-              else
-                Icon(
-                  Icons.chevron_right_rounded,
-                  size: 23,
-                  color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        descripcion,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-            ],
+                const SizedBox(width: 8),
+                if (opcion.titulo == 'Configuración')
+                  ThemeModeSwitch(
+                    key: const ValueKey('theme-mode-switch'),
+                    value: themeMode == ThemeMode.dark,
+                    onChanged: themePreference == null
+                        ? null
+                        : (isDark) => themePreference.onThemeModeChanged(
+                            isDark ? ThemeMode.dark : ThemeMode.light,
+                          ),
+                  )
+                else
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 23,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -458,83 +431,85 @@ class PerfilPage extends StatelessWidget {
   }
 
   Widget _botonCerrarSesion(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          showDialog<void>(
-            context: context,
-            builder: (dialogContext) {
-              return AlertDialog(
-                backgroundColor: Theme.of(context).colorScheme.surface,
-                surfaceTintColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  side: BorderSide(color: rojoAcento.withValues(alpha: 0.15)),
-                ),
-                title: const Text('Cerrar sesión'),
-                content: const Text(
-                  'La opción de cerrar sesión debe conectarse con el sistema de autenticación de la aplicación.',
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(dialogContext),
-                    child: const Text('Cancelar'),
+    return GelPress(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            showDialog<void>(
+              context: context,
+              builder: (dialogContext) {
+                return AlertDialog(
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                  surfaceTintColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    side: BorderSide(color: rojoAcento.withValues(alpha: 0.15)),
                   ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(dialogContext);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Conectá esta opción con Firebase Auth para cerrar sesión.',
+                  title: const Text('Cerrar sesión'),
+                  content: const Text(
+                    'La opción de cerrar sesión debe conectarse con el sistema de autenticación de la aplicación.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: const Text('Cancelar'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(dialogContext);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Conectá esta opción con Firebase Auth para cerrar sesión.',
+                            ),
                           ),
+                        );
+                      },
+                      child: const Text(
+                        'Continuar',
+                        style: TextStyle(
+                          color: rojoAcento,
+                          fontWeight: FontWeight.w700,
                         ),
-                      );
-                    },
-                    child: const Text(
-                      'Continuar',
-                      style: TextStyle(
-                        color: rojoAcento,
-                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ),
-                ],
-              );
-            },
-          );
-        },
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 17),
-          decoration: BoxDecoration(
-            color: rojoAcento.withValues(alpha: 0.055),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: rojoAcento.withValues(alpha: 0.22)),
-            boxShadow: [
-              BoxShadow(
-                color: rojoAcento.withValues(alpha: 0.035),
-                blurRadius: 18,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.logout_rounded, color: rojoAcento, size: 19),
-              SizedBox(width: 10),
-              Text(
-                'Cerrar sesión',
-                style: TextStyle(
-                  color: rojoAcento,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
+                  ],
+                );
+              },
+            );
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 17),
+            decoration: BoxDecoration(
+              color: rojoAcento.withValues(alpha: 0.055),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: rojoAcento.withValues(alpha: 0.22)),
+              boxShadow: [
+                BoxShadow(
+                  color: rojoAcento.withValues(alpha: 0.035),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
                 ),
-              ),
-            ],
+              ],
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.logout_rounded, color: rojoAcento, size: 19),
+                SizedBox(width: 10),
+                Text(
+                  'Cerrar sesión',
+                  style: TextStyle(
+                    color: rojoAcento,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -675,165 +650,171 @@ class ThemeModeSwitch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onChanged != null;
-    return Semantics(
-      button: true,
-      toggled: value,
+    return GelPress(
       enabled: enabled,
-      label: value ? 'Desactivar modo oscuro' : 'Activar modo oscuro',
-      child: Tooltip(
-        message: value ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro',
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            customBorder: const StadiumBorder(),
-            onTap: enabled ? () => onChanged!(!value) : null,
-            child: SizedBox(
-              width: 76,
-              height: 50,
-              child: Center(
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 520),
-                  curve: Curves.easeInOutCubicEmphasized,
-                  width: 70,
-                  height: 40,
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: value
-                          ? const [
-                              Color(0xFF253A68),
-                              Color(0xFF111C35),
-                              Color(0xFF382B62),
-                            ]
-                          : const [
-                              Color(0xFF9DDCFF),
-                              Color(0xFFE1F4FF),
-                              Color(0xFFBBDCFB),
-                            ],
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: value
-                          ? const Color(0xFF7388C7).withValues(alpha: 0.65)
-                          : Colors.white.withValues(alpha: 0.9),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color:
-                            (value
-                                    ? const Color(0xFF7079FF)
-                                    : const Color(0xFF56A7E8))
-                                .withValues(alpha: 0.32),
-                        blurRadius: 14,
-                        spreadRadius: 1,
+      child: Semantics(
+        button: true,
+        toggled: value,
+        enabled: enabled,
+        label: value ? 'Desactivar modo oscuro' : 'Activar modo oscuro',
+        child: Tooltip(
+          message: value ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro',
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              customBorder: const StadiumBorder(),
+              onTap: enabled ? () => onChanged!(!value) : null,
+              child: SizedBox(
+                width: 76,
+                height: 50,
+                child: Center(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 520),
+                    curve: Curves.easeInOutCubicEmphasized,
+                    width: 70,
+                    height: 40,
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: value
+                            ? const [
+                                Color(0xFF253A68),
+                                Color(0xFF111C35),
+                                Color(0xFF382B62),
+                              ]
+                            : const [
+                                Color(0xFF9DDCFF),
+                                Color(0xFFE1F4FF),
+                                Color(0xFFBBDCFB),
+                              ],
                       ),
-                    ],
-                  ),
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      AnimatedOpacity(
-                        duration: const Duration(milliseconds: 260),
-                        opacity: value ? 0.8 : 0.0,
-                        child: const Align(
-                          alignment: Alignment.centerRight,
-                          child: Padding(
-                            padding: EdgeInsets.only(right: 8),
-                            child: Icon(
-                              Icons.auto_awesome_rounded,
-                              color: Color(0xFFFFF2BC),
-                              size: 12,
-                            ),
-                          ),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: value
+                            ? const Color(0xFF7388C7).withValues(alpha: 0.65)
+                            : Colors.white.withValues(alpha: 0.9),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                              (value
+                                      ? const Color(0xFF7079FF)
+                                      : const Color(0xFF56A7E8))
+                                  .withValues(alpha: 0.32),
+                          blurRadius: 14,
+                          spreadRadius: 1,
                         ),
-                      ),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: AnimatedOpacity(
+                      ],
+                    ),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        AnimatedOpacity(
                           duration: const Duration(milliseconds: 260),
-                          opacity: value ? 0.0 : 0.95,
-                          child: const Padding(
-                            padding: EdgeInsets.only(left: 5),
-                            child: Icon(
-                              Icons.wb_sunny_rounded,
-                              color: Color(0xFFFFB547),
-                              size: 15,
+                          opacity: value ? 0.8 : 0.0,
+                          child: const Align(
+                            alignment: Alignment.centerRight,
+                            child: Padding(
+                              padding: EdgeInsets.only(right: 8),
+                              child: Icon(
+                                Icons.auto_awesome_rounded,
+                                color: Color(0xFFFFF2BC),
+                                size: 12,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      AnimatedAlign(
-                        duration: const Duration(milliseconds: 620),
-                        curve: Curves.elasticOut,
-                        alignment: value
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 420),
-                          curve: Curves.easeOutBack,
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: value
-                                  ? const [Color(0xFFF7F5FF), Color(0xFFD8D8FF)]
-                                  : const [Colors.white, Color(0xFFF0F8FF)],
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 260),
+                            opacity: value ? 0.0 : 0.95,
+                            child: const Padding(
+                              padding: EdgeInsets.only(left: 5),
+                              child: Icon(
+                                Icons.wb_sunny_rounded,
+                                color: Color(0xFFFFB547),
+                                size: 15,
+                              ),
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color:
-                                    (value
-                                            ? const Color(0xFF080E22)
-                                            : const Color(0xFF5284B1))
-                                        .withValues(alpha: 0.3),
-                                blurRadius: 7,
-                                offset: const Offset(0, 2),
-                              ),
-                              BoxShadow(
-                                color: Colors.white.withValues(
-                                  alpha: value ? 0.45 : 0.95,
-                                ),
-                                blurRadius: 2,
-                                offset: const Offset(0, -1),
-                              ),
-                            ],
                           ),
-                          child: Center(
-                            child: AnimatedRotation(
-                              turns: value ? 0.5 : 0,
-                              duration: const Duration(milliseconds: 560),
-                              curve: Curves.easeOutBack,
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 220),
-                                transitionBuilder: (child, animation) =>
-                                    ScaleTransition(
-                                      scale: animation,
-                                      child: FadeTransition(
-                                        opacity: animation,
-                                        child: child,
+                        ),
+                        AnimatedAlign(
+                          duration: const Duration(milliseconds: 620),
+                          curve: Curves.elasticOut,
+                          alignment: value
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 420),
+                            curve: Curves.easeOutBack,
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: value
+                                    ? const [
+                                        Color(0xFFF7F5FF),
+                                        Color(0xFFD8D8FF),
+                                      ]
+                                    : const [Colors.white, Color(0xFFF0F8FF)],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                      (value
+                                              ? const Color(0xFF080E22)
+                                              : const Color(0xFF5284B1))
+                                          .withValues(alpha: 0.3),
+                                  blurRadius: 7,
+                                  offset: const Offset(0, 2),
+                                ),
+                                BoxShadow(
+                                  color: Colors.white.withValues(
+                                    alpha: value ? 0.45 : 0.95,
+                                  ),
+                                  blurRadius: 2,
+                                  offset: const Offset(0, -1),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: AnimatedRotation(
+                                turns: value ? 0.5 : 0,
+                                duration: const Duration(milliseconds: 560),
+                                curve: Curves.easeOutBack,
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 220),
+                                  transitionBuilder: (child, animation) =>
+                                      ScaleTransition(
+                                        scale: animation,
+                                        child: FadeTransition(
+                                          opacity: animation,
+                                          child: child,
+                                        ),
                                       ),
-                                    ),
-                                child: Icon(
-                                  value
-                                      ? Icons.nightlight_round
-                                      : Icons.wb_sunny_rounded,
-                                  key: ValueKey<bool>(value),
-                                  size: 17,
-                                  color: value
-                                      ? const Color(0xFF53629B)
-                                      : const Color(0xFFE99A2E),
+                                  child: Icon(
+                                    value
+                                        ? Icons.nightlight_round
+                                        : Icons.wb_sunny_rounded,
+                                    key: ValueKey<bool>(value),
+                                    size: 17,
+                                    color: value
+                                        ? const Color(0xFF53629B)
+                                        : const Color(0xFFE99A2E),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
