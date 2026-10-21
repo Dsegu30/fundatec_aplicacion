@@ -1,4 +1,3 @@
-
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -53,138 +52,108 @@ class _CursosLibresPageState extends State<CursosLibresPage>
   final List<_CursoLibre> _cursos = const [
     _CursoLibre(
       nombre: 'Excel',
-      descripcion:
-          'Aprende a organizar información, utilizar fórmulas y trabajar con hojas de cálculo.',
+      descripcion: 'Aprende a organizar información, utilizar fórmulas y trabajar con hojas de cálculo.',
       categoria: 'Herramientas digitales',
       niveles: '3 niveles',
-      imagen:
-          'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=90',
+      imagen: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=90',
     ),
     _CursoLibre(
       nombre: 'Power BI',
-      descripcion:
-          'Crea informes y visualizaciones para analizar datos y facilitar la toma de decisiones.',
+      descripcion: 'Crea informes y visualizaciones para analizar datos y facilitar la toma de decisiones.',
       categoria: 'Análisis de datos',
       niveles: 'Consultar niveles',
-      imagen:
-          'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=90',
+      imagen: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=90',
     ),
     _CursoLibre(
       nombre: 'Minitab',
-      descripcion:
-          'Utiliza herramientas estadísticas para analizar datos y mejorar procesos.',
+      descripcion: 'Utiliza herramientas estadísticas para analizar datos y mejorar procesos.',
       categoria: 'Estadística',
       niveles: '6 niveles',
-      imagen:
-          'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=90',
+      imagen: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=90',
     ),
     _CursoLibre(
       nombre: 'Gerencia de Proyectos',
-      descripcion:
-          'Conoce herramientas para planificar, organizar y dar seguimiento a proyectos.',
+      descripcion: 'Conoce herramientas para planificar, organizar y dar seguimiento a proyectos.',
       categoria: 'Gestión',
       niveles: 'Consultar niveles',
-      imagen:
-          'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=90',
+      imagen: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=90',
     ),
     _CursoLibre(
       nombre: 'Caracterización y Análisis de Fallas',
-      descripcion:
-          'Aprende a identificar fallas, estudiar sus causas y proponer acciones de mejora.',
+      descripcion: 'Aprende a identificar fallas, estudiar sus causas y proponer acciones de mejora.',
       categoria: 'Calidad',
       niveles: 'Consultar niveles',
-      imagen:
-          'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1200&q=90',
+      imagen: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1200&q=90',
     ),
     _CursoLibre(
       nombre: 'Normas ISO 14001, 45001 y 50001',
-      descripcion:
-          'Conoce normas relacionadas con la gestión ambiental, la seguridad laboral y la energía.',
+      descripcion: 'Conoce normas relacionadas con la gestión ambiental, la seguridad laboral y la energía.',
       categoria: 'Normativas',
       niveles: '3 normas',
-      imagen:
-          'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=90',
+      imagen: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=90',
     ),
     _CursoLibre(
       nombre: 'Servicio al Cliente',
-      descripcion:
-          'Desarrolla habilidades para atender clientes y mejorar su experiencia de servicio.',
+      descripcion: 'Desarrolla habilidades para atender clientes y mejorar su experiencia de servicio.',
       categoria: 'Servicio',
       niveles: 'Consultar niveles',
-      imagen:
-          'https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=90',
+      imagen: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=90',
     ),
     _CursoLibre(
       nombre: 'Habilidades Blandas',
-      descripcion:
-          'Fortalece la comunicación, el trabajo en equipo y las relaciones interpersonales.',
+      descripcion: 'Fortalece la comunicación, el trabajo en equipo y las relaciones interpersonales.',
       categoria: 'Desarrollo personal',
       niveles: 'Consultar niveles',
-      imagen:
-          'https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1200&q=90',
+      imagen: 'https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1200&q=90',
     ),
     _CursoLibre(
       nombre: 'Innovación y Cambio',
-      descripcion:
-          'Aprende a impulsar ideas nuevas y adaptarte a los cambios en las organizaciones.',
+      descripcion: 'Aprende a impulsar ideas nuevas y adaptarte a los cambios en las organizaciones.',
       categoria: 'Innovación',
       niveles: 'Consultar niveles',
-      imagen:
-          'https://images.unsplash.com/photo-1558655146-9f40138edfeb?auto=format&fit=crop&w=1200&q=90',
+      imagen: 'https://images.unsplash.com/photo-1558655146-9f40138edfeb?auto=format&fit=crop&w=1200&q=90',
     ),
     _CursoLibre(
       nombre: 'Liderazgo',
-      descripcion:
-          'Desarrolla capacidades para orientar equipos, tomar decisiones y alcanzar objetivos.',
+      descripcion: 'Desarrolla capacidades para orientar equipos, tomar decisiones y alcanzar objetivos.',
       categoria: 'Gestión',
       niveles: 'Consultar niveles',
-      imagen:
-          'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=1200&q=90',
+      imagen: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=1200&q=90',
     ),
     _CursoLibre(
       nombre: 'Producción Esbelta',
-      descripcion:
-          'Conoce principios para mejorar procesos, aprovechar recursos y reducir actividades innecesarias.',
+      descripcion: 'Conoce principios para mejorar procesos, aprovechar recursos y reducir actividades innecesarias.',
       categoria: 'Producción',
       niveles: 'Consultar niveles',
-      imagen:
-          'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&w=1200&q=90',
+      imagen: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&w=1200&q=90',
     ),
     _CursoLibre(
       nombre: 'Taller Norma 17025',
-      descripcion:
-          'Conoce aspectos de la norma relacionada con la competencia de laboratorios de ensayo y calibración.',
+      descripcion: 'Conoce aspectos de la norma relacionada con la competencia de laboratorios de ensayo y calibración.',
       categoria: 'Normativas',
       niveles: 'Taller',
-      imagen:
-          'https://images.unsplash.com/photo-1582719471384-894fbb16e074?auto=format&fit=crop&w=1200&q=90',
+      imagen: 'https://images.unsplash.com/photo-1582719471384-894fbb16e074?auto=format&fit=crop&w=1200&q=90',
     ),
     _CursoLibre(
       nombre: 'Norma ISO 37002',
-      descripcion:
-          'Conoce lineamientos para implementar sistemas de gestión de denuncias en las organizaciones.',
+      descripcion: 'Conoce lineamientos para implementar sistemas de gestión de denuncias en las organizaciones.',
       categoria: 'Normativas',
       niveles: 'Norma',
-      imagen:
-          'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=1200&q=90',
+      imagen: 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=1200&q=90',
     ),
     _CursoLibre(
       nombre: 'Eliminación de Desperdicios',
-      descripcion:
-          'Identifica desperdicios en los procesos y aprende a reducir actividades que no agregan valor.',
+      descripcion: 'Identifica desperdicios en los procesos y aprende a reducir actividades que no agregan valor.',
       categoria: 'Mejora continua',
       niveles: 'Consultar niveles',
-      imagen:
-          'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=1200&q=90',
+      imagen: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=1200&q=90',
     ),
     _CursoLibre(
       nombre: 'Buenas Prácticas para un Ambiente Productivo y Seguro',
-      descripcion:
-          'Refuerza prácticas para promover espacios de trabajo organizados, productivos y seguros.',
+      descripcion: 'Refuerza prácticas para promover espacios de trabajo organizados, productivos y seguros.',
       categoria: 'Seguridad y productividad',
       niveles: 'Consultar niveles',
-      imagen:
-          'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1200&q=90',
+      imagen: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1200&q=90',
     ),
   ];
 
@@ -233,17 +202,9 @@ class _CursosLibresPageState extends State<CursosLibresPage>
       'Desarrollo personal',
       'Innovación',
     ],
-    'Calidad y mejora continua': [
-      'Calidad',
-      'Mejora continua',
-    ],
-    'Normativas y seguridad': [
-      'Normativas',
-      'Seguridad y productividad',
-    ],
-    'Producción': [
-      'Producción',
-    ],
+    'Calidad y mejora continua': ['Calidad', 'Mejora continua'],
+    'Normativas y seguridad': ['Normativas', 'Seguridad y productividad'],
+    'Producción': ['Producción'],
   };
 
   Color _colorGrupo(String grupo) {
@@ -413,252 +374,258 @@ class _CursosLibresPageState extends State<CursosLibresPage>
       builder: (_) => DisplayFeatureSubScreen(
         child: Builder(
           builder: (sheetContext) {
-        final altoPantalla = MediaQuery.sizeOf(sheetContext).height;
+            final altoPantalla = MediaQuery.sizeOf(sheetContext).height;
 
-        return SafeArea(
-          top: false,
-          child: Center(
-            child: Container(
-              constraints: BoxConstraints(
-                maxWidth: 620,
-                maxHeight: altoPantalla * 0.88,
-              ),
-              margin: const EdgeInsets.fromLTRB(12, 12, 12, 10),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(30),
-                child: BackdropFilter(
-                  filter: ui.ImageFilter.blur(sigmaX: 25, sigmaY: 25),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: esOscuro
-                          ? const Color(0xFF101E2C).withOpacity(0.97)
-                          : Colors.white.withOpacity(0.97),
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.65),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: primaryNavy.withOpacity(0.28),
-                          blurRadius: 32,
-                          offset: const Offset(0, 12),
-                        ),
-                      ],
-                    ),
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(
-                            height: 225,
-                            width: double.infinity,
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                Image.network(
-                                  curso.imagen,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => Container(
-                                    color: deepBlue,
-                                    child: const Icon(
-                                      Icons.school_rounded,
-                                      size: 65,
-                                      color: Colors.white70,
-                                    ),
-                                  ),
-                                ),
-                                DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        primaryNavy.withOpacity(0.05),
-                                        primaryNavy.withOpacity(0.15),
-                                        primaryNavy.withOpacity(0.92),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                Positioned(
-                                  top: 14,
-                                  right: 14,
-                                  child: _botonCristal(
-                                    icono: Icons.close_rounded,
-                                    onTap: () =>
-                                        Navigator.pop(sheetContext),
-                                  ),
-                                ),
-                                Positioned(
-                                  left: 22,
-                                  right: 22,
-                                  bottom: 20,
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.end,
-                                    children: [
-                                      Container(
-                                        width: 55,
-                                        height: 55,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.17),
-                                          borderRadius:
-                                              BorderRadius.circular(18),
-                                          border: Border.all(
-                                            color: Colors.white.withOpacity(0.38),
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          _iconoCurso(curso),
-                                          color: Colors.white,
-                                          size: 29,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        child: Text(
-                                          curso.nombre,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.w800,
-                                            height: 1.15,
-                                            letterSpacing: -0.4,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
+            return SafeArea(
+              top: false,
+              child: Center(
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxWidth: 620,
+                    maxHeight: altoPantalla * 0.88,
+                  ),
+                  margin: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(30),
+                    child: BackdropFilter(
+                      filter: ui.ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: esOscuro
+                              ? const Color(0xFF101E2C).withOpacity(0.97)
+                              : Colors.white.withOpacity(0.97),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.65),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(
-                              22,
-                              22,
-                              22,
-                              24,
+                          boxShadow: [
+                            BoxShadow(
+                              color: primaryNavy.withOpacity(0.28),
+                              blurRadius: 32,
+                              offset: const Offset(0, 12),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 7,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: accentBlue.withOpacity(0.10),
-                                    borderRadius: BorderRadius.circular(30),
-                                    border: Border.all(
-                                      color: accentBlue.withOpacity(0.18),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    curso.categoria.toUpperCase(),
-                                    style: const TextStyle(
-                                      color: accentBlue,
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 15),
-                                Text(
-                                  curso.descripcion,
-                                  style: TextStyle(
-                                    color: esOscuro
-                                        ? Colors.white70
-                                        : const Color(0xFF526173),
-                                    fontSize: 15,
-                                    height: 1.65,
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
-                                Container(
-                                  padding: const EdgeInsets.all(15),
-                                  decoration: BoxDecoration(
-                                    color: esOscuro
-                                        ? Colors.white.withOpacity(0.06)
-                                        : const Color(0xFFEDF5FB),
-                                    borderRadius: BorderRadius.circular(18),
-                                    border: Border.all(
-                                      color: esOscuro
-                                          ? Colors.white.withOpacity(0.12)
-                                          : const Color(0xFFD8E8F5),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 44,
-                                        height: 44,
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: colores,
-                                          ),
-                                          borderRadius:
-                                              BorderRadius.circular(14),
-                                        ),
+                          ],
+                        ),
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                height: 225,
+                                width: double.infinity,
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Image.network(
+                                      curso.imagen,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) => Container(
+                                        color: deepBlue,
                                         child: const Icon(
-                                          Icons.menu_book_rounded,
-                                          color: Colors.white,
+                                          Icons.school_rounded,
+                                          size: 65,
+                                          color: Colors.white70,
                                         ),
                                       ),
-                                      const SizedBox(width: 13),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Información del curso',
-                                              style: TextStyle(
-                                                color: esOscuro
-                                                    ? Colors.white54
-                                                    : const Color(0xFF64748B),
-                                                fontSize: 11,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              curso.niveles,
-                                              style: TextStyle(
-                                                color: esOscuro
-                                                    ? Colors.white
-                                                    : primaryNavy,
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w800,
-                                              ),
-                                            ),
+                                    ),
+                                    DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [
+                                            primaryNavy.withOpacity(0.05),
+                                            primaryNavy.withOpacity(0.15),
+                                            primaryNavy.withOpacity(0.92),
                                           ],
                                         ),
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                    Positioned(
+                                      top: 14,
+                                      right: 14,
+                                      child: _botonCristal(
+                                        icono: Icons.close_rounded,
+                                        onTap: () =>
+                                            Navigator.pop(sheetContext),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      left: 22,
+                                      right: 22,
+                                      bottom: 20,
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Container(
+                                            width: 55,
+                                            height: 55,
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withOpacity(
+                                                0.17,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(18),
+                                              border: Border.all(
+                                                color: Colors.white.withOpacity(
+                                                  0.38,
+                                                ),
+                                              ),
+                                            ),
+                                            child: Icon(
+                                              _iconoCurso(curso),
+                                              color: Colors.white,
+                                              size: 29,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 14),
+                                          Expanded(
+                                            child: Text(
+                                              curso.nombre,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 22,
+                                                fontWeight: FontWeight.w800,
+                                                height: 1.15,
+                                                letterSpacing: -0.4,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: 22),
-                                _botonAccionGlass(
-                                  texto: 'Cerrar detalles',
-                                  icono: Icons.check_rounded,
-                                  onTap: () => Navigator.pop(sheetContext),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  22,
+                                  22,
+                                  22,
+                                  24,
                                 ),
-                              ],
-                            ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 7,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: accentBlue.withOpacity(0.10),
+                                        borderRadius: BorderRadius.circular(30),
+                                        border: Border.all(
+                                          color: accentBlue.withOpacity(0.18),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        curso.categoria.toUpperCase(),
+                                        style: const TextStyle(
+                                          color: accentBlue,
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 1,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 15),
+                                    Text(
+                                      curso.descripcion,
+                                      style: TextStyle(
+                                        color: esOscuro
+                                            ? Colors.white70
+                                            : const Color(0xFF526173),
+                                        fontSize: 15,
+                                        height: 1.65,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    Container(
+                                      padding: const EdgeInsets.all(15),
+                                      decoration: BoxDecoration(
+                                        color: esOscuro
+                                            ? Colors.white.withOpacity(0.06)
+                                            : const Color(0xFFEDF5FB),
+                                        borderRadius: BorderRadius.circular(18),
+                                        border: Border.all(
+                                          color: esOscuro
+                                              ? Colors.white.withOpacity(0.12)
+                                              : const Color(0xFFD8E8F5),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 44,
+                                            height: 44,
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                colors: colores,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                            ),
+                                            child: const Icon(
+                                              Icons.menu_book_rounded,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 13),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'Información del curso',
+                                                  style: TextStyle(
+                                                    color: esOscuro
+                                                        ? Colors.white54
+                                                        : const Color(
+                                                            0xFF64748B,
+                                                          ),
+                                                    fontSize: 11,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  curso.niveles,
+                                                  style: TextStyle(
+                                                    color: esOscuro
+                                                        ? Colors.white
+                                                        : primaryNavy,
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w800,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 22),
+                                    _botonAccionGlass(
+                                      texto: 'Cerrar detalles',
+                                      icono: Icons.check_rounded,
+                                      onTap: () => Navigator.pop(sheetContext),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ),
-        );
+            );
           },
         ),
       ),
@@ -669,10 +636,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
   // TARJETAS DE CURSOS
   // ----------------------------------------------------------
 
-  Widget _crearTarjeta(
-    _CursoLibre curso, {
-    required double height,
-  }) {
+  Widget _crearTarjeta(_CursoLibre curso, {required double height}) {
     final colores = _coloresCurso(curso);
     const radio = 25.0;
 
@@ -684,6 +648,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
           onTap: () => _mostrarDetalles(curso),
           borderRadius: BorderRadius.circular(radio),
           child: Container(
+            width: double.infinity,
             height: height,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(radio),
@@ -692,9 +657,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.38),
-              ),
+              border: Border.all(color: Colors.white.withOpacity(0.38)),
               boxShadow: [
                 BoxShadow(
                   color: colores.first.withOpacity(0.22),
@@ -731,8 +694,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                             curso.imagen,
                             fit: BoxFit.cover,
                             filterQuality: FilterQuality.high,
-                            errorBuilder: (_, _, _) =>
-                                const SizedBox.shrink(),
+                            errorBuilder: (_, _, _) => const SizedBox.shrink(),
                           ),
                         ),
                       ),
@@ -772,18 +734,12 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                   Positioned(
                     top: -45,
                     right: 65,
-                    child: _burbujaGlass(
-                      140,
-                      Colors.white.withOpacity(0.10),
-                    ),
+                    child: _burbujaGlass(140, Colors.white.withOpacity(0.10)),
                   ),
                   Positioned(
                     bottom: -50,
                     right: 80,
-                    child: _burbujaGlass(
-                      140,
-                      accentCyan.withOpacity(0.10),
-                    ),
+                    child: _burbujaGlass(140, accentCyan.withOpacity(0.10)),
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(17, 16, 45, 16),
@@ -792,10 +748,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                         ClipRRect(
                           borderRadius: BorderRadius.circular(17),
                           child: BackdropFilter(
-                            filter: ui.ImageFilter.blur(
-                              sigmaX: 12,
-                              sigmaY: 12,
-                            ),
+                            filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                             child: Container(
                               width: height >= 200 ? 58 : 51,
                               height: height >= 200 ? 58 : 51,
@@ -902,16 +855,11 @@ class _CursosLibresPageState extends State<CursosLibresPage>
         filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: Container(
           constraints: const BoxConstraints(maxWidth: 180),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 8,
-            vertical: 5,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.16),
             borderRadius: BorderRadius.circular(30),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.28),
-            ),
+            border: Border.all(color: Colors.white.withOpacity(0.28)),
           ),
           child: Text(
             texto,
@@ -928,10 +876,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
     );
   }
 
-  Widget _botonCristal({
-    required IconData icono,
-    required VoidCallback onTap,
-  }) {
+  Widget _botonCristal({required IconData icono, required VoidCallback onTap}) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -947,15 +892,9 @@ class _CursosLibresPageState extends State<CursosLibresPage>
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.19),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.40),
-                ),
+                border: Border.all(color: Colors.white.withOpacity(0.40)),
               ),
-              child: Icon(
-                icono,
-                color: Colors.white,
-                size: 22,
-              ),
+              child: Icon(icono, color: Colors.white, size: 22),
             ),
           ),
         ),
@@ -976,10 +915,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
           onTap: onTap,
           borderRadius: BorderRadius.circular(18),
           child: Ink(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 18,
-              vertical: 15,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
@@ -987,9 +923,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                 colors: [Color(0xFF164B73), Color(0xFF061424)],
               ),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.30),
-              ),
+              border: Border.all(color: Colors.white.withOpacity(0.30)),
               boxShadow: [
                 BoxShadow(
                   color: primaryNavy.withOpacity(0.20),
@@ -1027,11 +961,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: RadialGradient(
-            colors: [
-              color,
-              color.withOpacity(0.35),
-              Colors.transparent,
-            ],
+            colors: [color, color.withOpacity(0.35), Colors.transparent],
           ),
         ),
       ),
@@ -1042,10 +972,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
   // ENCABEZADO COMPARTIDO CON LAS DEMÁS SECCIONES
   // ----------------------------------------------------------
 
-  Widget _construirEncabezado({
-    required bool compact,
-    required bool wide,
-  }) {
+  Widget _construirEncabezado({required bool compact, required bool wide}) {
     final horizontalPadding = wide ? 32.0 : 22.0;
     const borderRadius = BorderRadius.only(
       bottomLeft: Radius.circular(30),
@@ -1076,18 +1003,12 @@ class _CursosLibresPageState extends State<CursosLibresPage>
             Positioned(
               top: -95,
               right: -55,
-              child: _burbujaGlass(
-                245,
-                accentBlue.withOpacity(0.16),
-              ),
+              child: _burbujaGlass(245, accentBlue.withOpacity(0.16)),
             ),
             Positioned(
               bottom: -115,
               left: -50,
-              child: _burbujaGlass(
-                220,
-                accentCyan.withOpacity(0.08),
-              ),
+              child: _burbujaGlass(220, accentCyan.withOpacity(0.08)),
             ),
             Padding(
               padding: EdgeInsets.fromLTRB(
@@ -1187,10 +1108,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
   // CATÁLOGO AGRUPADO POR CATEGORÍA
   // ----------------------------------------------------------
 
-  Widget _construirCatalogo({
-    required double ancho,
-    required double alto,
-  }) {
+  Widget _construirCatalogo({required double ancho, required double alto}) {
     final theme = Theme.of(context);
     final esOscuro = theme.brightness == Brightness.dark;
 
@@ -1208,13 +1126,14 @@ class _CursosLibresPageState extends State<CursosLibresPage>
 
         final landscape = ancho > alto && alto < 600;
         final escalaTexto = MediaQuery.textScalerOf(context).scale(1);
-        final alturaBase = landscape ? 166.0 : columnas == 1 ? 188.0 : 205.0;
+        final alturaBase = landscape
+            ? 176.0
+            : columnas == 1
+            ? 188.0
+            : 205.0;
         final alturaTarjeta = alturaBase * math.max(1, escalaTexto);
 
-        final espacio = ResponsiveLayout.spacingFor(
-          context,
-          minimum: 15,
-        );
+        final espacio = ResponsiveLayout.spacingFor(context, minimum: 15);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1347,6 +1266,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                         const SizedBox(height: 13),
                         if (columnas == 1)
                           Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               for (var i = 0; i < cursosGrupo.length; i++) ...[
                                 if (i > 0) SizedBox(height: espacio),
@@ -1471,10 +1391,10 @@ class _CursosLibresPageState extends State<CursosLibresPage>
             final maxWidth = wide
                 ? 1120.0
                 : landscape
-                    ? 820.0
-                    : width >= 560
-                        ? 680.0
-                        : 520.0;
+                ? 820.0
+                : width >= 560
+                ? 680.0
+                : 520.0;
 
             return Stack(
               children: [
@@ -1610,15 +1530,10 @@ class _FondoLiquidGlass extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: RadialGradient(
-            colors: [
-              color,
-              color.withOpacity(0.35),
-              Colors.transparent,
-            ],
+            colors: [color, color.withOpacity(0.35), Colors.transparent],
           ),
         ),
       ),
     );
   }
 }
-
