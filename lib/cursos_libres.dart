@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'app_theme.dart';
 import 'calendario.dart';
 import 'navegacion_glass.dart';
 import 'notificaciones.dart';
@@ -335,9 +336,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
 
     Navigator.push(
       context,
-      MaterialPageRoute<void>(
-        builder: (_) => const CalendarioPage(),
-      ),
+      appPageRoute<void>(builder: (_) => const CalendarioPage()),
     );
   }
 
@@ -346,9 +345,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
 
     Navigator.push(
       context,
-      MaterialPageRoute<void>(
-        builder: (_) => const PerfilPage(),
-      ),
+      appPageRoute<void>(builder: (_) => const PerfilPage()),
     );
   }
 
@@ -357,7 +354,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
 
     Navigator.push(
       context,
-      MaterialPageRoute<void>(
+      appPageRoute<void>(
         builder: (_) => NotificacionesScreen(
           onSectionSelected: (index) {
             if (!mounted) return;
@@ -413,7 +410,9 @@ class _CursosLibresPageState extends State<CursosLibresPage>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: primaryNavy.withOpacity(0.58),
-      builder: (sheetContext) {
+      builder: (_) => DisplayFeatureSubScreen(
+        child: Builder(
+          builder: (sheetContext) {
         final altoPantalla = MediaQuery.sizeOf(sheetContext).height;
 
         return SafeArea(
@@ -660,7 +659,9 @@ class _CursosLibresPageState extends State<CursosLibresPage>
             ),
           ),
         );
-      },
+          },
+        ),
+      ),
     );
   }
 
@@ -675,7 +676,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
     final colores = _coloresCurso(curso);
     const radio = 25.0;
 
-    return _GelPress(
+    return GelPress(
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(radio),
@@ -1038,23 +1039,28 @@ class _CursosLibresPageState extends State<CursosLibresPage>
   }
 
   // ----------------------------------------------------------
-  // ENCABEZADO SIN BUSCADOR NI TEXTO ADICIONAL
+  // ENCABEZADO COMPARTIDO CON LAS DEMÁS SECCIONES
   // ----------------------------------------------------------
 
   Widget _construirEncabezado({
     required bool compact,
     required bool wide,
   }) {
-    final padding = wide ? 32.0 : 21.0;
+    final horizontalPadding = wide ? 32.0 : 22.0;
+    const borderRadius = BorderRadius.only(
+      bottomLeft: Radius.circular(30),
+      bottomRight: Radius.circular(30),
+    );
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: primaryNavy,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [primaryNavy, deepBlue, Color(0xFF1B3C73)],
         ),
+        borderRadius: borderRadius,
         boxShadow: [
           BoxShadow(
             color: primaryNavy.withOpacity(0.20),
@@ -1064,118 +1070,114 @@ class _CursosLibresPageState extends State<CursosLibresPage>
         ],
       ),
       child: ClipRRect(
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
-        ),
+        borderRadius: borderRadius,
         child: Stack(
           children: [
-            Positioned.fill(
-              child: Image.network(
-                'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1800&q=90',
-                fit: BoxFit.cover,
-                color: primaryNavy.withOpacity(0.30),
-                colorBlendMode: BlendMode.darken,
-                errorBuilder: (_, _, _) => const SizedBox.shrink(),
-              ),
-            ),
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      primaryNavy.withOpacity(0.95),
-                      deepBlue.withOpacity(0.91),
-                      const Color(0xFF164B73).withOpacity(0.88),
-                    ],
-                  ),
-                ),
-              ),
-            ),
             Positioned(
-              top: -85,
-              right: -45,
+              top: -95,
+              right: -55,
               child: _burbujaGlass(
-                230,
+                245,
                 accentBlue.withOpacity(0.16),
               ),
             ),
             Positioned(
-              bottom: -100,
-              left: -45,
+              bottom: -115,
+              left: -50,
               child: _burbujaGlass(
-                205,
+                220,
                 accentCyan.withOpacity(0.08),
               ),
             ),
             Padding(
               padding: EdgeInsets.fromLTRB(
-                padding,
+                horizontalPadding,
                 compact ? 12 : 16,
-                padding,
-                compact ? 17 : 20,
+                horizontalPadding,
+                compact ? 18 : 24,
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _botonEncabezadoGlass(
-                    icono: Icons.arrow_back_rounded,
-                    tooltip: 'Volver',
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      Navigator.maybePop(context);
-                    },
+                  Row(
+                    children: [
+                      AppBackButton(
+                        onDarkBackground: true,
+                        onPressed: () => Navigator.of(context).maybePop(),
+                      ),
+                      const Spacer(),
+                      GelPress(
+                        child: IconButton(
+                          tooltip: 'Avisos',
+                          onPressed: _abrirAvisos,
+                          icon: const Icon(
+                            Icons.notifications_none_rounded,
+                            color: Colors.white,
+                            size: 26,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const Spacer(),
-                  _botonEncabezadoGlass(
-                    icono: Icons.notifications_none_rounded,
-                    tooltip: 'Avisos',
-                    onTap: _abrirAvisos,
+                  SizedBox(height: compact ? 5 : 10),
+                  Text(
+                    'Cursos libres',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: wide ? 30 : 25,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                    ),
                   ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Amplía tus habilidades con opciones prácticas para tu desarrollo profesional.',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                  if (!compact) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 13,
+                        vertical: 11,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.10),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.18),
+                        ),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.school_outlined,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Escuela de Ingeniería en Producción Industrial',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _botonEncabezadoGlass({
-    required IconData icono,
-    required String tooltip,
-    required VoidCallback onTap,
-  }) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-              child: Container(
-                width: 43,
-                height: 43,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.25),
-                  ),
-                ),
-                child: Icon(
-                  icono,
-                  color: Colors.white,
-                  size: 22,
-                ),
-              ),
-            ),
-          ),
         ),
       ),
     );
@@ -1205,8 +1207,9 @@ class _CursosLibresPageState extends State<CursosLibresPage>
         );
 
         final landscape = ancho > alto && alto < 600;
-        final alturaTarjeta =
-            landscape ? 166.0 : columnas == 1 ? 188.0 : 205.0;
+        final escalaTexto = MediaQuery.textScalerOf(context).scale(1);
+        final alturaBase = landscape ? 166.0 : columnas == 1 ? 188.0 : 205.0;
+        final alturaTarjeta = alturaBase * math.max(1, escalaTexto);
 
         final espacio = ResponsiveLayout.spacingFor(
           context,
@@ -1220,7 +1223,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
               children: [
                 Expanded(
                   child: Text(
-                    'Cursos libres',
+                    'Explora el catálogo',
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w900,
                       letterSpacing: -0.7,
@@ -1267,7 +1270,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
             ),
             const SizedBox(height: 6),
             Text(
-              'Explora las opciones y encuentra tu próximo aprendizaje.',
+              'Explora las áreas y encuentra tu próximo aprendizaje.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
                 height: 1.45,
@@ -1278,8 +1281,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
               Builder(
                 builder: (context) {
                   final cursosGrupo = _cursos
-                      .where((curso) =>
-                          grupo.value.contains(curso.categoria))
+                      .where((curso) => grupo.value.contains(curso.categoria))
                       .toList();
 
                   if (cursosGrupo.isEmpty) {
@@ -1346,9 +1348,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                         if (columnas == 1)
                           Column(
                             children: [
-                              for (var i = 0;
-                                  i < cursosGrupo.length;
-                                  i++) ...[
+                              for (var i = 0; i < cursosGrupo.length; i++) ...[
                                 if (i > 0) SizedBox(height: espacio),
                                 _crearTarjeta(
                                   cursosGrupo[i],
@@ -1364,17 +1364,15 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                             itemCount: cursosGrupo.length,
                             gridDelegate:
                                 SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: columnas,
-                              crossAxisSpacing: espacio,
-                              mainAxisSpacing: espacio,
-                              mainAxisExtent: alturaTarjeta,
+                                  crossAxisCount: columnas,
+                                  crossAxisSpacing: espacio,
+                                  mainAxisSpacing: espacio,
+                                  mainAxisExtent: alturaTarjeta,
+                                ),
+                            itemBuilder: (context, index) => _crearTarjeta(
+                              cursosGrupo[index],
+                              height: alturaTarjeta,
                             ),
-                            itemBuilder: (context, index) {
-                              return _crearTarjeta(
-                                cursosGrupo[index],
-                                height: alturaTarjeta,
-                              );
-                            },
                           ),
                       ],
                     ),
@@ -1624,39 +1622,3 @@ class _FondoLiquidGlass extends StatelessWidget {
   }
 }
 
-// ============================================================
-// EFECTO DE PRESIÓN SUAVE
-// ============================================================
-
-class _GelPress extends StatefulWidget {
-  final Widget child;
-
-  const _GelPress({required this.child});
-
-  @override
-  State<_GelPress> createState() => _GelPressState();
-}
-
-class _GelPressState extends State<_GelPress> {
-  bool _presionado = false;
-
-  void _cambiarPresion(bool value) {
-    if (_presionado == value) return;
-    setState(() => _presionado = value);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Listener(
-      onPointerDown: (_) => _cambiarPresion(true),
-      onPointerUp: (_) => _cambiarPresion(false),
-      onPointerCancel: (_) => _cambiarPresion(false),
-      child: AnimatedScale(
-        scale: _presionado ? 0.985 : 1,
-        duration: const Duration(milliseconds: 170),
-        curve: Curves.easeOutCubic,
-        child: widget.child,
-      ),
-    );
-  }
-}
