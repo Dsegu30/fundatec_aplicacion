@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -80,7 +81,9 @@ ThemeData buildAppTheme(Brightness brightness) {
     colorScheme: scheme,
     textTheme: ThemeData(brightness: brightness, fontFamily: 'Roboto').textTheme
         .apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface),
-    scaffoldBackgroundColor: scheme.surface,
+    scaffoldBackgroundColor: dark
+        ? const Color(0xFF101923)
+        : const Color(0xFFF7FAFF),
     canvasColor: scheme.surface,
     cardColor: dark ? const Color(0xFF202D3A) : Colors.white,
     dividerColor: dark ? const Color(0xFF526273) : const Color(0x1F061424),
@@ -165,6 +168,80 @@ ThemeData buildAppTheme(Brightness brightness) {
       },
     ),
   );
+}
+
+/// Fondo común inspirado en el degradado y las luces difuminadas de Perfil.
+class FondoAppDifuminado extends StatelessWidget {
+  const FondoAppDifuminado({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: dark
+                      ? const [
+                          Color(0xFF101923),
+                          Color(0xFF152231),
+                          Color(0xFF1B2B3B),
+                        ]
+                      : const [
+                          Color(0xFFFFFFFF),
+                          Color(0xFFF7FAFF),
+                          Color(0xFFEEF4FC),
+                        ],
+                ),
+              ),
+            ),
+            Positioned(
+              top: -100,
+              right: -80,
+              child: _brillo(
+                size: 270,
+                color: const Color(0xFF7CB4FF).withValues(alpha: 0.18),
+              ),
+            ),
+            Positioned(
+              top: 290,
+              left: -125,
+              child: _brillo(
+                size: 250,
+                color: const Color(0xFFB9D8FF).withValues(alpha: 0.18),
+              ),
+            ),
+            Positioned(
+              bottom: 70,
+              right: -100,
+              child: _brillo(
+                size: 250,
+                color: const Color(0xFFE5A8B0).withValues(alpha: 0.09),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _brillo({required double size, required Color color}) {
+    return ImageFiltered(
+      imageFilter: ui.ImageFilter.blur(sigmaX: 38, sigmaY: 38),
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      ),
+    );
+  }
 }
 
 /// Administra la animación de cambio de tema.
@@ -256,7 +333,7 @@ class ThemeTransitionOverlay extends StatelessWidget {
       child: RepaintBoundary(
         child: AnimatedBuilder(
           animation: animation,
-          builder: (_, __) => CustomPaint(
+          builder: (_, _) => CustomPaint(
             painter: _ThemeTransitionPainter(
               progress: animation.value,
               dark: dark,
@@ -494,6 +571,76 @@ abstract final class AppMotion {
   static const double gelSquashY = 0.085;
 }
 
+class OrientationChangeTransition extends StatefulWidget {
+  final Widget child;
+
+  const OrientationChangeTransition({
+    super.key,
+    required this.child,
+  });
+
+  @override
+  State<OrientationChangeTransition> createState() =>
+      _OrientationChangeTransitionState();
+}
+
+class _OrientationChangeTransitionState
+    extends State<OrientationChangeTransition>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+  late final Animation<double> _scale;
+  late final Animation<Offset> _slide;
+  bool? _wasLandscape;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+      value: 1,
+    );
+    _fade = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
+    _scale = Tween<double>(begin: 0.985, end: 1).animate(_fade);
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.018),
+      end: Offset.zero,
+    ).animate(_fade);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final size = MediaQuery.sizeOf(context);
+    final isLandscape = size.width > size.height;
+    if (_wasLandscape != null && isLandscape != _wasLandscape) {
+      _controller.forward(from: 0);
+    }
+    _wasLandscape = isLandscape;
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fade,
+      child: SlideTransition(
+        position: _slide,
+        child: ScaleTransition(scale: _scale, child: widget.child),
+      ),
+    );
+  }
+}
+
 /// Adds a soft horizontal stretch and vertical squash to a tappable child.
 class GelPress extends StatefulWidget {
   final Widget child;
@@ -584,80 +731,50 @@ class _GelPressState extends State<GelPress>
 }
 
 /// Usá esta ruta para las pantallas abiertas con Navigator.push.
+Widget _appPageTransition(
+  Animation<double> animation,
+  Animation<double> secondaryAnimation,
+  Widget child,
+) {
+  final enter = CurvedAnimation(
+    parent: animation,
+    curve: Curves.easeOutCubic,
+    reverseCurve: Curves.easeInCubic,
+  );
+  final exit = CurvedAnimation(
+    parent: secondaryAnimation,
+    curve: Curves.easeInCubic,
+    reverseCurve: Curves.easeOutCubic,
+  );
+
+  return SlideTransition(
+    position: Tween<Offset>(
+      begin: Offset.zero,
+      end: const Offset(0, -0.012),
+    ).animate(exit),
+    child: FadeTransition(
+      opacity: ReverseAnimation(exit),
+      child: FadeTransition(
+        opacity: enter,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.035),
+            end: Offset.zero,
+          ).animate(enter),
+          child: child,
+        ),
+      ),
+    ),
+  );
+}
+
 Route<T> appPageRoute<T>({required WidgetBuilder builder}) {
   return PageRouteBuilder<T>(
     transitionDuration: AppMotion.pageTransitionDuration,
     reverseTransitionDuration: AppMotion.pageTransitionDuration,
-    pageBuilder: (context, animation, secondaryAnimation) {
-      return builder(context);
-    },
-    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      final enter = CurvedAnimation(
-        parent: animation,
-        curve: Curves.easeOutCubic,
-        reverseCurve: Curves.easeInCubic,
-      );
-      final enterSpring = CurvedAnimation(
-        parent: animation,
-        curve: AppMotion.pageOpenCurve,
-        reverseCurve: Curves.easeInCubic,
-      );
-
-      final exit = CurvedAnimation(
-        parent: secondaryAnimation,
-        curve: Curves.easeInCubic,
-        reverseCurve: Curves.easeOutCubic,
-      );
-
-      return SlideTransition(
-        position: Tween<Offset>(
-          begin: Offset.zero,
-          end: const Offset(-AppMotion.pageSlideDistance * 0.65, 0),
-        ).animate(exit),
-        child: FadeTransition(
-          opacity: ReverseAnimation(exit),
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 1, end: 0.975).animate(exit),
-            child: FadeTransition(
-              opacity: enter,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(AppMotion.pageSlideDistance, 0.012),
-                  end: Offset.zero,
-                ).animate(enter),
-                child: ScaleTransition(
-                  scale: Tween<double>(
-                    begin: AppMotion.pageOpenScale,
-                    end: 1,
-                  ).animate(enterSpring),
-                  child: AnimatedBuilder(
-                    animation: enter,
-                    child: child,
-                    builder: (context, page) {
-                      final reveal = (1 - enter.value).clamp(0.0, 1.0);
-                      return Transform(
-                        alignment: Alignment.center,
-                        transform: Matrix4.diagonal3Values(
-                          1 + AppMotion.gelStretchX * reveal,
-                          1 - AppMotion.gelSquashY * reveal,
-                          1,
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(
-                            AppMotion.pageRevealRadius * reveal,
-                          ),
-                          child: page,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    },
+    pageBuilder: (context, animation, secondaryAnimation) => builder(context),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+        _appPageTransition(animation, secondaryAnimation, child),
   );
 }
 
@@ -673,69 +790,6 @@ class FadeThroughPageTransitionsBuilder extends PageTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    final curved = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic,
-    );
-    final spring = CurvedAnimation(
-      parent: animation,
-      curve: AppMotion.pageOpenCurve,
-      reverseCurve: Curves.easeInCubic,
-    );
-    final exiting = CurvedAnimation(
-      parent: secondaryAnimation,
-      curve: Curves.easeInCubic,
-      reverseCurve: Curves.easeOutCubic,
-    );
-
-    return SlideTransition(
-      position: Tween<Offset>(
-        begin: Offset.zero,
-        end: const Offset(-AppMotion.pageSlideDistance * 0.65, 0),
-      ).animate(exiting),
-      child: FadeTransition(
-        opacity: ReverseAnimation(exiting),
-        child: ScaleTransition(
-          scale: Tween<double>(begin: 1, end: 0.975).animate(exiting),
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(AppMotion.pageSlideDistance, 0.012),
-              end: Offset.zero,
-            ).animate(curved),
-            child: FadeTransition(
-              opacity: curved,
-              child: ScaleTransition(
-                scale: Tween<double>(
-                  begin: AppMotion.pageOpenScale,
-                  end: 1,
-                ).animate(spring),
-                child: AnimatedBuilder(
-                  animation: curved,
-                  child: child,
-                  builder: (context, page) {
-                    final reveal = (1 - curved.value).clamp(0.0, 1.0);
-                    return Transform(
-                      alignment: Alignment.center,
-                      transform: Matrix4.diagonal3Values(
-                        1 + AppMotion.gelStretchX * reveal,
-                        1 - AppMotion.gelSquashY * reveal,
-                        1,
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(
-                          AppMotion.pageRevealRadius * reveal,
-                        ),
-                        child: page,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+    return _appPageTransition(animation, secondaryAnimation, child);
   }
 }

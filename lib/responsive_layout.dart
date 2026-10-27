@@ -6,6 +6,15 @@ import 'package:flutter/material.dart';
 class ResponsiveLayout {
   const ResponsiveLayout._();
 
+  /// Returns the width available to page content.
+  ///
+  /// Individual screens own their inner padding, so this must not subtract a
+  /// second set of gutters on tablets, foldables, or desktop-sized windows.
+  static double contentMaxWidth(double width) => width;
+
+  static bool isCompactLandscape(double width, double height) =>
+      width > height && height < 600;
+
   static ui.DisplayFeature? verticalHinge(BuildContext context) {
     final displaySize = MediaQuery.sizeOf(context);
 
@@ -47,19 +56,23 @@ class ResponsiveCardGrid extends StatelessWidget {
   final IndexedWidgetBuilder itemBuilder;
   final double maxWidth;
   final double cardHeight;
+  final double? maxCardHeight;
   final double spacing;
   final double threeColumnMinWidth;
   final double twoColumnMinWidth;
+  final int maxColumns;
 
   const ResponsiveCardGrid({
     super.key,
     required this.itemCount,
     required this.itemBuilder,
-    this.maxWidth = 1100,
+    this.maxWidth = double.infinity,
     this.cardHeight = 178,
+    this.maxCardHeight,
     this.spacing = 16,
     this.threeColumnMinWidth = 1000,
     this.twoColumnMinWidth = 600,
+    this.maxColumns = 3,
   });
 
   @override
@@ -70,15 +83,38 @@ class ResponsiveCardGrid extends StatelessWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final hinge = ResponsiveLayout.verticalHinge(context);
-            final columns = ResponsiveLayout.columnsForWidth(
+            final screenSize = MediaQuery.sizeOf(context);
+            final suggestedColumns = ResponsiveLayout.columnsForWidth(
               constraints.maxWidth,
               hinge: hinge,
               threeColumnMinWidth: threeColumnMinWidth,
               twoColumnMinWidth: twoColumnMinWidth,
             );
+            final columns = math.min(maxColumns, suggestedColumns);
             final horizontalSpacing = hinge == null
                 ? spacing
                 : math.max(spacing, hinge.bounds.width + 16);
+            final compactLandscape = ResponsiveLayout.isCompactLandscape(
+              screenSize.width,
+              screenSize.height,
+            );
+            final heightFactor = compactLandscape
+                ? 0.32
+                : columns == 1
+                ? 0.24
+                : 0.29;
+            final targetCardHeight = screenSize.height * heightFactor;
+            final maximumCardHeight = maxCardHeight ??
+                (compactLandscape ? 178.0 : 340.0);
+            final adaptiveCardHeight = maxCardHeight != null
+                ? targetCardHeight.clamp(cardHeight, maximumCardHeight)
+                : compactLandscape
+                ? targetCardHeight.clamp(150.0, maximumCardHeight)
+                : targetCardHeight.clamp(cardHeight, maximumCardHeight);
+            Widget buildItem(int index) => SizedBox(
+              height: adaptiveCardHeight.toDouble(),
+              child: itemBuilder(context, index),
+            );
             final rows = <Widget>[];
 
             for (var first = 0; first < itemCount; first += columns) {
@@ -88,7 +124,19 @@ class ResponsiveCardGrid extends StatelessWidget {
               final count = math.min(columns, remaining);
 
               if (count == 1) {
-                rows.add(itemBuilder(context, first));
+                if (columns == 1) {
+                  rows.add(buildItem(first));
+                } else {
+                  rows.add(
+                    Row(
+                      children: [
+                        Spacer(flex: columns - 1),
+                        Expanded(flex: 2, child: buildItem(first)),
+                        Spacer(flex: columns - 1),
+                      ],
+                    ),
+                  );
+                }
                 continue;
               }
 
@@ -97,9 +145,9 @@ class ResponsiveCardGrid extends StatelessWidget {
                   Row(
                     children: [
                       const Spacer(flex: 1),
-                      Expanded(flex: 2, child: itemBuilder(context, first)),
+                      Expanded(flex: 2, child: buildItem(first)),
                       SizedBox(width: horizontalSpacing),
-                      Expanded(flex: 2, child: itemBuilder(context, first + 1)),
+                      Expanded(flex: 2, child: buildItem(first + 1)),
                       const Spacer(flex: 1),
                     ],
                   ),
@@ -112,7 +160,7 @@ class ResponsiveCardGrid extends StatelessWidget {
                   children: [
                     for (var offset = 0; offset < count; offset++) ...[
                       if (offset > 0) SizedBox(width: horizontalSpacing),
-                      Expanded(child: itemBuilder(context, first + offset)),
+                      Expanded(child: buildItem(first + offset)),
                     ],
                   ],
                 ),

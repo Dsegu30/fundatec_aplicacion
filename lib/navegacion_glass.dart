@@ -25,7 +25,7 @@ class NavegacionGlass extends StatelessWidget {
   static const _items = [
     (Icons.home_rounded, Icons.home_outlined, 'Inicio'),
     (Icons.calendar_month_rounded, Icons.calendar_month_outlined, 'Calendario'),
-    (Icons.notifications_rounded, Icons.notifications_none_rounded, 'Avisos'),
+    (Icons.campaign_rounded, Icons.campaign_outlined, 'Avisos'),
     (Icons.person_rounded, Icons.person_outline_rounded, 'Perfil'),
   ];
 
@@ -41,6 +41,7 @@ class NavegacionGlass extends StatelessWidget {
     final isCompact =
         compact ||
         (screenSize.width > screenSize.height && screenSize.width < 720);
+    final fillAvailableWidth = isWide || screenSize.width >= 560;
     final activeIndex = selectedIndex >= 0 && selectedIndex < _items.length
         ? selectedIndex
         : -1;
@@ -57,12 +58,15 @@ class NavegacionGlass extends StatelessWidget {
         alignment: Alignment.bottomCenter,
         heightFactor: 1,
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: isWide ? 720 : 432),
+          constraints: BoxConstraints(
+            maxWidth: fillAvailableWidth ? double.infinity : 432,
+          ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(32),
             child: BackdropFilter(
               filter: ui.ImageFilter.blur(sigmaX: 26, sigmaY: 26),
               child: Container(
+                width: double.infinity,
                 padding: EdgeInsets.symmetric(
                   horizontal: isCompact ? 5 : 7,
                   vertical: isCompact ? 5 : 6,

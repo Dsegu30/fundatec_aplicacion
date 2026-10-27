@@ -18,6 +18,8 @@
 	<string>fundatec</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Face ID se usa para permitirte iniciar sesión en TEC Móvil en este dispositivo.</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>

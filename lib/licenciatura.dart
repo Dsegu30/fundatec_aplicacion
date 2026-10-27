@@ -9,6 +9,7 @@ import 'calendario.dart';
 import 'navegacion_glass.dart';
 import 'notificaciones.dart';
 import 'perfil.dart';
+import 'responsive_layout.dart';
 
 class LicenciaturaPage extends StatefulWidget {
   const LicenciaturaPage({super.key});
@@ -186,7 +187,9 @@ class _LicenciaturaPageState extends State<LicenciaturaPage>
 
     final horizontalInset = screenSize.width < 360 ? 14.0 : 18.0;
 
-    final maxContentWidth = screenSize.width >= 1360 ? 1400.0 : 1100.0;
+    final maxContentWidth = ResponsiveLayout.contentMaxWidth(
+      screenSize.width,
+    );
 
     return DisplayFeatureSubScreen(
       child: Scaffold(
@@ -194,7 +197,7 @@ class _LicenciaturaPageState extends State<LicenciaturaPage>
         extendBody: true,
         body: Stack(
           children: [
-            const _FondoLiquidGlass(),
+            const FondoAppDifuminado(),
 
             SafeArea(
               bottom: false,
@@ -504,7 +507,7 @@ class _LicenciaturaPageState extends State<LicenciaturaPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    flex: 7,
+                    flex: pantallaAmplia ? 7 : 10,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -591,7 +594,7 @@ class _LicenciaturaPageState extends State<LicenciaturaPage>
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    Icons.auto_awesome_rounded,
+                                    Icons.precision_manufacturing_rounded,
                                     color: Color(0xFF7DD3FC),
                                     size: 17,
                                   ),
@@ -616,10 +619,8 @@ class _LicenciaturaPageState extends State<LicenciaturaPage>
                       ],
                     ),
                   ),
-                  Expanded(
-                    flex: 3,
-                    child: const SizedBox.shrink(),
-                  ),
+                  if (pantallaAmplia)
+                    const Expanded(flex: 3, child: SizedBox.shrink()),
                 ],
               ),
             ),
@@ -1108,15 +1109,6 @@ class _LicenciaturaPageState extends State<LicenciaturaPage>
                 color: Colors.white.withValues(alpha: 0.045),
               ),
             ),
-            Positioned(
-              top: 28,
-              right: 25,
-              child: Icon(
-                Icons.auto_awesome_rounded,
-                color: Colors.white.withValues(alpha: 0.20),
-                size: 27,
-              ),
-            ),
             Padding(
               padding: const EdgeInsets.all(21),
               child: Column(
@@ -1393,96 +1385,6 @@ class _LicenciaturaPageState extends State<LicenciaturaPage>
           compact: ancho > alto && ancho < 720,
         );
       },
-    );
-  }
-}
-
-// ============================================================
-// FONDO LIQUID GLASS
-// ============================================================
-
-class _FondoLiquidGlass extends StatelessWidget {
-  const _FondoLiquidGlass();
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-
-    return Positioned.fill(
-      child: IgnorePointer(
-        child: Stack(
-          children: [
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: dark
-                      ? const [
-                          Color(0xFF091522),
-                          Color(0xFF10243A),
-                          Color(0xFF142B3C),
-                        ]
-                      : const [
-                          Color(0xFFF5F9FF),
-                          Color(0xFFE5F1FC),
-                          Color(0xFFF4F8FD),
-                        ],
-                ),
-              ),
-            ),
-            Positioned(
-              top: -85,
-              right: -115,
-              child: _burbuja(
-                size: 350,
-                color:
-                    (dark ? const Color(0xFF1687F6) : const Color(0xFF55A9F1))
-                        .withValues(alpha: dark ? 0.30 : 0.35),
-              ),
-            ),
-            Positioned(
-              top: 330,
-              left: -155,
-              child: _burbuja(
-                size: 330,
-                color:
-                    (dark ? const Color(0xFF00B8A9) : const Color(0xFF39C8C0))
-                        .withValues(alpha: dark ? 0.24 : 0.28),
-              ),
-            ),
-            Positioned(
-              bottom: -95,
-              right: -70,
-              child: _burbuja(
-                size: 290,
-                color: const Color(0xFF7C6BF2)
-                    .withValues(alpha: dark ? 0.18 : 0.15),
-              ),
-            ),
-            Positioned(
-              bottom: 140,
-              left: 45,
-              child: _burbuja(
-                size: 125,
-                color: const Color(0xFF8FD8F3)
-                    .withValues(alpha: dark ? 0.14 : 0.26),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _burbuja({required double size, required Color color}) {
-    return ImageFiltered(
-      imageFilter: ui.ImageFilter.blur(sigmaX: 42, sigmaY: 42),
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      ),
     );
   }
 }

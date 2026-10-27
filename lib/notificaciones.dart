@@ -6,6 +6,7 @@ import 'app_theme.dart';
 import 'calendario.dart';
 import 'navegacion_glass.dart';
 import 'perfil.dart';
+import 'responsive_layout.dart';
 
 const Color _azulTec = Color(0xFF083D91);
 const Color _azulBrillante = Color(0xFF3478F6);
@@ -26,9 +27,8 @@ class NotificacionesScreen extends StatefulWidget {
 }
 
 class _NotificacionesScreenState extends State<NotificacionesScreen>
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   late final AnimationController _entrada;
-  late final AnimationController _ambiente;
 
   int _filtroSeleccionado = 0;
   final int _pestanaSeleccionada = 2;
@@ -84,17 +84,11 @@ class _NotificacionesScreenState extends State<NotificacionesScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     )..forward();
-
-    _ambiente = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 18),
-    )..repeat(reverse: true);
   }
 
   @override
   void dispose() {
     _entrada.dispose();
-    _ambiente.dispose();
     super.dispose();
   }
 
@@ -106,6 +100,10 @@ class _NotificacionesScreenState extends State<NotificacionesScreen>
   }
 
   int get _noLeidos => _avisos.where((aviso) => !aviso.leido).length;
+
+  double get _anchoMaximoContenido => ResponsiveLayout.contentMaxWidth(
+    MediaQuery.sizeOf(context).width,
+  );
 
   void _seleccionarSeccion(int index) {
     if (widget.embedded && widget.onSectionSelected != null) {
@@ -176,20 +174,7 @@ class _NotificacionesScreenState extends State<NotificacionesScreen>
       extendBody: true,
       body: Stack(
         children: [
-          Positioned.fill(child: ColoredBox(color: theme.colorScheme.surface)),
-          Positioned.fill(
-            child: AnimatedBuilder(
-              animation: _ambiente,
-              builder: (context, child) {
-                return CustomPaint(
-                  painter: _FondoGlassPainter(
-                    progreso: _ambiente.value,
-                    dark: theme.brightness == Brightness.dark,
-                  ),
-                );
-              },
-            ),
-          ),
+          const FondoAppDifuminado(),
           SafeArea(
             bottom: !widget.embedded,
             child: FadeTransition(
@@ -209,7 +194,9 @@ class _NotificacionesScreenState extends State<NotificacionesScreen>
                   children: [
                     Center(
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 960),
+                        constraints: BoxConstraints(
+                          maxWidth: _anchoMaximoContenido,
+                        ),
                         child: _construirBarraSuperior(),
                       ),
                     ),
@@ -252,13 +239,17 @@ class _NotificacionesScreenState extends State<NotificacionesScreen>
   }
 
   Widget _construirContenido() {
+    final hinge = ResponsiveLayout.verticalHinge(context);
+
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
         SliverToBoxAdapter(
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 960),
+              constraints: BoxConstraints(
+                maxWidth: _anchoMaximoContenido,
+              ),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 18, 24, 22),
                 child: Column(
@@ -338,9 +329,32 @@ class _NotificacionesScreenState extends State<NotificacionesScreen>
             hasScrollBody: false,
             child: Center(
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: 960),
+                constraints: BoxConstraints(
+                  maxWidth: _anchoMaximoContenido,
+                ),
                 child: _EstadoVacio(),
               ),
+            ),
+          )
+        else if (hinge != null)
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(22, 0, 22, 145),
+            sliver: SliverGrid(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: hinge.bounds.width + 16,
+                mainAxisSpacing: 12,
+                mainAxisExtent: 156,
+              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final aviso = _avisosVisibles[index];
+
+                return _TarjetaAviso(
+                  aviso: aviso,
+                  indice: index,
+                  onTap: () => _abrirAviso(aviso),
+                );
+              }, childCount: _avisosVisibles.length),
             ),
           )
         else
@@ -352,7 +366,9 @@ class _NotificacionesScreenState extends State<NotificacionesScreen>
 
                 return Center(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 960),
+                    constraints: BoxConstraints(
+                      maxWidth: _anchoMaximoContenido,
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _TarjetaAviso(
@@ -462,7 +478,7 @@ class _NotificacionesScreenState extends State<NotificacionesScreen>
                           borderRadius: BorderRadius.circular(11),
                         ),
                         child: Icon(
-                          Icons.auto_awesome_rounded,
+                          Icons.dashboard_outlined,
                           color: Theme.of(context).colorScheme.primary,
                           size: 17,
                         ),
@@ -527,7 +543,7 @@ class _NotificacionesScreenState extends State<NotificacionesScreen>
                   Row(
                     children: [
                       const Icon(
-                        Icons.notifications_active_outlined,
+                        Icons.campaign_outlined,
                         size: 16,
                         color: _azulBrillante,
                       ),
@@ -906,7 +922,7 @@ class _IconoPrincipalGlass extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               Icon(
-                Icons.notifications_none_rounded,
+                Icons.campaign_outlined,
                 color: Theme.of(context).colorScheme.primary,
                 size: 35,
               ),
@@ -1114,7 +1130,7 @@ class _EstadoVacio extends StatelessWidget {
                 ],
               ),
               child: Icon(
-                Icons.notifications_none_rounded,
+                Icons.campaign_outlined,
                 color: Theme.of(context).colorScheme.primary,
                 size: 37,
               ),
@@ -1266,72 +1282,5 @@ class _DetalleAviso extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-// FONDO AMBIENTAL LIQUID GLASS
-
-class _FondoGlassPainter extends CustomPainter {
-  _FondoGlassPainter({required this.progreso, required this.dark});
-
-  final double progreso;
-  final bool dark;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..style = PaintingStyle.fill
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 45);
-
-    paint.color = const Color(0xFF8EB9FF).withValues(alpha: 0.15);
-
-    canvas.drawCircle(
-      Offset(size.width * (0.90 - progreso * 0.06), size.height * 0.15),
-      size.width * 0.37,
-      paint,
-    );
-
-    paint.color = const Color(0xFFB8D3FF).withValues(alpha: 0.15);
-
-    canvas.drawCircle(
-      Offset(size.width * 0.05, size.height * (0.55 + progreso * 0.04)),
-      size.width * 0.32,
-      paint,
-    );
-
-    paint.color = Colors.white.withValues(alpha: dark ? 0.04 : 0.35);
-
-    canvas.drawCircle(
-      Offset(size.width * 0.90, size.height * 0.79),
-      size.width * 0.26,
-      paint,
-    );
-
-    final banda = Paint()
-      ..shader =
-          LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.white.withValues(alpha: 0.0),
-              Colors.white.withValues(alpha: dark ? 0.025 : 0.13),
-              Colors.white.withValues(alpha: 0.0),
-            ],
-            stops: const [0.25, 0.5, 0.75],
-          ).createShader(
-            Rect.fromLTWH(
-              size.width * (progreso * 0.2),
-              0,
-              size.width,
-              size.height,
-            ),
-          );
-
-    canvas.drawRect(Offset.zero & size, banda);
-  }
-
-  @override
-  bool shouldRepaint(covariant _FondoGlassPainter oldDelegate) {
-    return oldDelegate.progreso != progreso || oldDelegate.dark != dark;
   }
 }

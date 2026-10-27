@@ -6,17 +6,20 @@ import 'app_theme.dart';
 import 'calendario.dart';
 import 'navegacion_glass.dart';
 import 'notificaciones.dart';
+import 'responsive_layout.dart';
 
 class PerfilPage extends StatelessWidget {
   final bool embedded;
   final VoidCallback? onBack;
   final ValueChanged<int>? onSectionSelected;
+  final Future<void> Function()? onLogout;
 
   const PerfilPage({
     super.key,
     this.embedded = false,
     this.onBack,
     this.onSectionSelected,
+    this.onLogout,
   });
 
   static const Color rojoAcento = Color(0xFFE11D2E);
@@ -30,7 +33,7 @@ class PerfilPage extends StatelessWidget {
       bottom: false,
       child: Stack(
         children: [
-          const Positioned.fill(child: _FondoPerfilClaro()),
+          const FondoAppDifuminado(),
           Positioned.fill(
             child: CustomScrollView(
               physics: const BouncingScrollPhysics(),
@@ -40,62 +43,107 @@ class PerfilPage extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 132),
                     child: Center(
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 620),
+                        constraints: BoxConstraints(
+                          maxWidth: ResponsiveLayout.contentMaxWidth(
+                            MediaQuery.sizeOf(context).width,
+                          ),
+                        ),
                         child: Column(
                           children: [
                             _barraSuperior(context),
                             const SizedBox(height: 34),
                             _encabezado(context),
                             const SizedBox(height: 42),
-                            _tarjetaOpciones(
-                              context,
-                              opciones: const [
-                                _OpcionPerfil(
-                                  icono: Icons.badge_outlined,
-                                  titulo: 'Información personal',
-                                  descripcion: 'Mis datos',
-                                  color: azulTec,
-                                ),
-                                _OpcionPerfil(
-                                  icono: Icons.shield_outlined,
-                                  titulo: 'Seguridad de la cuenta',
-                                  descripcion: 'Acceso y seguridad',
-                                  color: azulTec,
-                                ),
-                                _OpcionPerfil(
-                                  icono: Icons.school_outlined,
-                                  titulo: 'Mi carrera',
-                                  descripcion: 'Información académica',
-                                  color: azulTec,
-                                ),
-                              ],
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final hinge =
+                                    ResponsiveLayout.verticalHinge(context);
+                                const opcionesCuenta = [
+                                  _OpcionPerfil(
+                                    icono: Icons.badge_outlined,
+                                    titulo: 'Información personal',
+                                    descripcion: 'Mis datos',
+                                    color: azulTec,
+                                  ),
+                                  _OpcionPerfil(
+                                    icono: Icons.shield_outlined,
+                                    titulo: 'Seguridad de la cuenta',
+                                    descripcion: 'Acceso y seguridad',
+                                    color: azulTec,
+                                  ),
+                                  _OpcionPerfil(
+                                    icono: Icons.school_outlined,
+                                    titulo: 'Mi carrera',
+                                    descripcion: 'Información académica',
+                                    color: azulTec,
+                                  ),
+                                ];
+                                const opcionesAdicionales = [
+                                  _OpcionPerfil(
+                                    icono: Icons.folder_open_rounded,
+                                    titulo: 'Mis documentos',
+                                    descripcion: 'Documentos académicos',
+                                    color: azulTec,
+                                  ),
+                                  _OpcionPerfil(
+                                    icono: Icons.tune_rounded,
+                                    titulo: 'Configuración',
+                                    descripcion:
+                                        'Preferencias de la aplicación',
+                                    color: azulTec,
+                                  ),
+                                  _OpcionPerfil(
+                                    icono: Icons.help_outline_rounded,
+                                    titulo: 'Ayuda',
+                                    descripcion: 'Centro de ayuda',
+                                    color: azulTec,
+                                  ),
+                                ];
+
+                                if (constraints.maxWidth >= 840 ||
+                                    hinge != null) {
+                                  return Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: _tarjetaOpciones(
+                                          context,
+                                          opciones: opcionesCuenta,
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: hinge == null
+                                            ? 20
+                                            : hinge.bounds.width + 16,
+                                      ),
+                                      Expanded(
+                                        child: _tarjetaOpciones(
+                                          context,
+                                          opciones: opcionesAdicionales,
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }
+
+                                return Column(
+                                  children: [
+                                    _tarjetaOpciones(
+                                      context,
+                                      opciones: opcionesCuenta,
+                                    ),
+                                    const SizedBox(height: 24),
+                                    _tarjetaOpciones(
+                                      context,
+                                      opciones: opcionesAdicionales,
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
                             const SizedBox(height: 24),
-                            _tarjetaOpciones(
-                              context,
-                              opciones: const [
-                                _OpcionPerfil(
-                                  icono: Icons.folder_open_rounded,
-                                  titulo: 'Mis documentos',
-                                  descripcion: 'Documentos académicos',
-                                  color: azulTec,
-                                ),
-                                _OpcionPerfil(
-                                  icono: Icons.tune_rounded,
-                                  titulo: 'Configuración',
-                                  descripcion: 'Preferencias de la aplicación',
-                                  color: azulTec,
-                                ),
-                                _OpcionPerfil(
-                                  icono: Icons.help_outline_rounded,
-                                  titulo: 'Ayuda',
-                                  descripcion: 'Centro de ayuda',
-                                  color: azulTec,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-                            _botonCerrarSesion(context),
+                            _botonCerrarSesion(context, onLogout: onLogout),
                             const SizedBox(height: 20),
                           ],
                         ),
@@ -430,7 +478,10 @@ class PerfilPage extends StatelessWidget {
     };
   }
 
-  Widget _botonCerrarSesion(BuildContext context) {
+  Widget _botonCerrarSesion(
+    BuildContext context, {
+    Future<void> Function()? onLogout,
+  }) {
     return GelPress(
       child: Material(
         color: Colors.transparent,
@@ -446,9 +497,9 @@ class PerfilPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(24),
                     side: BorderSide(color: rojoAcento.withValues(alpha: 0.15)),
                   ),
-                  title: const Text('Cerrar sesión'),
+                  title: const Text('¿Cerrar sesión?'),
                   content: const Text(
-                    'La opción de cerrar sesión debe conectarse con el sistema de autenticación de la aplicación.',
+                    'Volverás a la pantalla de acceso y tendrás que iniciar sesión de nuevo.',
                   ),
                   actions: [
                     TextButton(
@@ -456,18 +507,24 @@ class PerfilPage extends StatelessWidget {
                       child: const Text('Cancelar'),
                     ),
                     TextButton(
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.pop(dialogContext);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Conectá esta opción con Firebase Auth para cerrar sesión.',
+                        try {
+                          await onLogout?.call();
+                        } catch (error) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'No se pudo cerrar la sesión: $error',
+                              ),
+                              behavior: SnackBarBehavior.floating,
                             ),
-                          ),
-                        );
+                          );
+                        }
                       },
                       child: const Text(
-                        'Continuar',
+                        'Cerrar sesión',
                         style: TextStyle(
                           color: rojoAcento,
                           fontWeight: FontWeight.w700,
@@ -512,74 +569,6 @@ class PerfilPage extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _FondoPerfilClaro extends StatelessWidget {
-  const _FondoPerfilClaro();
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: dark
-                  ? const [
-                      Color(0xFF101923),
-                      Color(0xFF152231),
-                      Color(0xFF1B2B3B),
-                    ]
-                  : const [
-                      Color(0xFFFFFFFF),
-                      Color(0xFFF7FAFF),
-                      Color(0xFFEEF4FC),
-                    ],
-            ),
-          ),
-        ),
-        Positioned(
-          top: -100,
-          right: -80,
-          child: _brillo(
-            size: 270,
-            color: const Color(0xFF7CB4FF).withValues(alpha: 0.18),
-          ),
-        ),
-        Positioned(
-          top: 290,
-          left: -125,
-          child: _brillo(
-            size: 250,
-            color: const Color(0xFFB9D8FF).withValues(alpha: 0.18),
-          ),
-        ),
-        Positioned(
-          bottom: 70,
-          right: -100,
-          child: _brillo(
-            size: 250,
-            color: const Color(0xFFE5A8B0).withValues(alpha: 0.09),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _brillo({required double size, required Color color}) {
-    return ImageFiltered(
-      imageFilter: ui.ImageFilter.blur(sigmaX: 38, sigmaY: 38),
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
     );
   }
@@ -719,7 +708,7 @@ class ThemeModeSwitch extends StatelessWidget {
                             child: Padding(
                               padding: EdgeInsets.only(right: 8),
                               child: Icon(
-                                Icons.auto_awesome_rounded,
+                                Icons.nightlight_round,
                                 color: Color(0xFFFFF2BC),
                                 size: 12,
                               ),

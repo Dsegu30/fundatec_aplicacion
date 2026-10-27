@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -6,6 +8,7 @@ import 'calendario.dart';
 import 'navegacion_glass.dart';
 import 'notificaciones.dart';
 import 'perfil.dart';
+import 'posgrados_detalle.dart';
 import 'responsive_layout.dart';
 
 class PosgradosPage extends StatefulWidget {
@@ -27,6 +30,23 @@ class _PosgradosPageState extends State<PosgradosPage> {
       icono: Icons.engineering_outlined,
       colores: [Color(0xFF102A43), Color(0xFF176B87)],
       imagen: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&w=1500&q=92',
+      programa: _TipoPosgrado.doctoradoIngenieria,
+    ),
+    _PosgradoData(
+      titulo: 'Maestría en Calidad Académica',
+      descripcion: 'Diseña modelos, instrumentos y estrategias para fortalecer la calidad y evaluación de las organizaciones.',
+      icono: Icons.school_outlined,
+      colores: [Color(0xFF17375E), Color(0xFF3977B8)],
+      imagen: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&w=1500&q=92',
+      programa: _TipoPosgrado.calidadAcademica,
+    ),
+    _PosgradoData(
+      titulo: 'Maestría en Calidad Profesional',
+      descripcion: 'Transforma la gestión de la calidad en resultados concretos y mejora continua para las organizaciones.',
+      icono: Icons.fact_check_outlined,
+      colores: [Color(0xFF162D3D), Color(0xFF247B87)],
+      imagen: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=1500&q=92',
+      programa: _TipoPosgrado.calidadProfesional,
     ),
     _PosgradoData(
       titulo: 'Maestría en Cadena de Abastecimiento',
@@ -34,6 +54,7 @@ class _PosgradosPageState extends State<PosgradosPage> {
       icono: Icons.local_shipping_outlined,
       colores: [Color(0xFF182848), Color(0xFF315C91)],
       imagen: 'https://images.unsplash.com/photo-1773399881946-8371e1c538d9?auto=format&fit=crop&w=1500&q=92',
+      programa: _TipoPosgrado.cadenaAbastecimiento,
     ),
     _PosgradoData(
       titulo: 'Maestría en Sistemas Modernos de Manufactura',
@@ -41,23 +62,30 @@ class _PosgradosPageState extends State<PosgradosPage> {
       icono: Icons.precision_manufacturing_outlined,
       colores: [Color(0xFF162D3D), Color(0xFF247B87)],
       imagen: 'https://images.unsplash.com/photo-1647427060118-4911c9821b82?auto=format&fit=crop&w=1500&q=92',
+      programa: _TipoPosgrado.sistemasModernosManufactura,
     ),
   ];
 
-  void _mostrarMensaje(String mensaje) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(mensaje),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: deepBlue,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        margin: const EdgeInsets.all(16),
+  Widget _detalleDe(_PosgradoData posgrado) {
+    return switch (posgrado.programa) {
+      _TipoPosgrado.doctoradoIngenieria => PosgradoDetallePage(
+        titulo: posgrado.titulo,
+        descripcion: posgrado.descripcion,
+        aspectos: const [
+          'Consulta con la coordinación las líneas de investigación y el proceso de admisión.',
+          'Solicita información actualizada sobre requisitos, duración y modalidad.',
+        ],
+        imagen: posgrado.imagen,
+        colores: posgrado.colores,
       ),
-    );
+      _TipoPosgrado.calidadAcademica => const MaestriaCalidadAcademicaPage(),
+      _TipoPosgrado.calidadProfesional =>
+        const MaestriaCalidadProfesionalPage(),
+      _TipoPosgrado.cadenaAbastecimiento =>
+        const MaestriaCadenaAbastecimientoPage(),
+      _TipoPosgrado.sistemasModernosManufactura =>
+        const MaestriaSistemasModernosManufacturaPage(),
+    };
   }
 
   void _abrirCalendario() {
@@ -127,47 +155,87 @@ class _PosgradosPageState extends State<PosgradosPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1100),
-                        child: _construirEncabezado(),
+    return Builder(
+      builder: (context) {
+        final size = MediaQuery.sizeOf(context);
+        final compactLandscape = size.width > size.height && size.height < 600;
+        final horizontalInset = size.width < 360 ? 14.0 : 20.0;
+        final hinge = ResponsiveLayout.verticalHinge(context);
+        final availableGridWidth = size.width - horizontalInset * 2;
+        final columns = hinge != null || availableGridWidth >= 720 ? 2 : 1;
+        final rowCount = (posgrados.length / columns).ceil();
+        final rowSpacing = compactLandscape ? 12.0 : 20.0;
+        final gridTopInset = compactLandscape ? 12.0 : 18.0;
+        final gridBottomInset = compactLandscape ? 12.0 : 18.0;
+        final minimumCardHeight = columns == 1 ? 120.0 : 150.0;
+
+        return Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          body: Stack(
+            children: [
+              const FondoAppDifuminado(),
+              SafeArea(
+                child: Column(
+                  children: [
+                    _construirEncabezado(compactLandscape),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final availableCardSpace =
+                              constraints.maxHeight -
+                              gridTopInset -
+                              gridBottomInset -
+                              rowSpacing * (rowCount - 1);
+                          final cardHeight = math.max(
+                            minimumCardHeight,
+                            availableCardSpace / rowCount,
+                          ).toDouble();
+
+                          return SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            child: Padding(
+                              padding: EdgeInsets.fromLTRB(
+                                horizontalInset,
+                                gridTopInset,
+                                horizontalInset,
+                                gridBottomInset,
+                              ),
+                              child: ResponsiveCardGrid(
+                                itemCount: posgrados.length,
+                                maxWidth: double.infinity,
+                                cardHeight: cardHeight,
+                                maxCardHeight: cardHeight,
+                                maxColumns: 2,
+                                twoColumnMinWidth: 720,
+                                spacing: rowSpacing,
+                                itemBuilder: (context, index) =>
+                                    _construirTarjeta(posgrados[index]),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 22, 16, 24),
-                    sliver: SliverToBoxAdapter(
-                      child: ResponsiveCardGrid(
-                        itemCount: posgrados.length,
-                        itemBuilder: (context, index) =>
-                            _construirTarjeta(posgrados[index]),
-                      ),
-                    ),
-                  ),
-                ],
+                    _construirNavegacionInferior(),
+                  ],
+                ),
               ),
-            ),
-            _construirNavegacionInferior(),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _construirEncabezado() {
+  Widget _construirEncabezado([bool compacto = false]) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(22, 18, 22, 24),
+      padding: EdgeInsets.fromLTRB(
+        compacto ? 18 : 22,
+        compacto ? 8 : 18,
+        compacto ? 18 : 22,
+        compacto ? 12 : 24,
+      ),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -182,27 +250,9 @@ class _PosgradosPageState extends State<PosgradosPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              AppBackButton(
-                onDarkBackground: true,
-                onPressed: () {
-                  Navigator.of(context).maybePop();
-                },
-              ),
-              const Spacer(),
-              GelPress(
-                child: IconButton(
-                  tooltip: 'Avisos',
-                  onPressed: _abrirAvisos,
-                  icon: const Icon(
-                    Icons.notifications_none_rounded,
-                    color: Colors.white,
-                    size: 26,
-                  ),
-                ),
-              ),
-            ],
+          AppBackButton(
+            onDarkBackground: true,
+            onPressed: () => Navigator.of(context).maybePop(),
           ),
           const Text(
             'Posgrados',
@@ -233,7 +283,8 @@ class _PosgradosPageState extends State<PosgradosPage> {
         child: InkWell(
           onTap: () {
             HapticFeedback.selectionClick();
-            _mostrarMensaje('Seleccionaste: ${posgrado.titulo}');
+            Navigator.of(context)
+                .push(appPageRoute<void>(builder: (_) => _detalleDe(posgrado)));
           },
           borderRadius: BorderRadius.circular(radio),
           child: Container(
@@ -301,7 +352,7 @@ class _PosgradosPageState extends State<PosgradosPage> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 17, 47, 17),
+                    padding: const EdgeInsets.fromLTRB(16, 10, 47, 10),
                     child: Row(
                       children: [
                         Container(
@@ -337,7 +388,7 @@ class _PosgradosPageState extends State<PosgradosPage> {
                                   height: 1.18,
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               Text(
                                 posgrado.descripcion,
                                 maxLines: 3,
@@ -398,6 +449,7 @@ class _PosgradoData {
   final IconData icono;
   final List<Color> colores;
   final String imagen;
+  final _TipoPosgrado programa;
 
   const _PosgradoData({
     required this.titulo,
@@ -405,5 +457,14 @@ class _PosgradoData {
     required this.icono,
     required this.colores,
     required this.imagen,
+    required this.programa,
   });
+}
+
+enum _TipoPosgrado {
+  doctoradoIngenieria,
+  calidadAcademica,
+  calidadProfesional,
+  cadenaAbastecimiento,
+  sistemasModernosManufactura,
 }

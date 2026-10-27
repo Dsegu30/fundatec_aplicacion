@@ -1,0 +1,45 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /usuarios/{uid} {
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && request.resource.data.correo is string
+        && request.resource.data.tipo in [
+          'Estudiante',
+          'Empleado',
+          'Empresa',
+          'Egresado'
+        ]
+        && request.resource.data.keys().hasOnly([
+          'uid',
+          'correo',
+          'tipo',
+          'fechaRegistro'
+        ]);
+
+      allow read: if request.auth != null && request.auth.uid == uid;
+
+      allow update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && request.resource.data.correo is string
+        && request.resource.data.tipo in [
+          'Estudiante',
+          'Empleado',
+          'Empresa',
+          'Egresado'
+        ]
+        && request.resource.data.keys().hasOnly([
+          'uid',
+          'correo',
+          'tipo',
+          'fechaRegistro'
+        ]);
+
+      allow delete: if false;
+    }
+  }
+}

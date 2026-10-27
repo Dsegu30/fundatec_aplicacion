@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "945528616182",
+    "project_id": "fundatec-f8dfa",
+    "storage_bucket": "fundatec-f8dfa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:945528616182:android:85604dcfd9bde82ad1e8d7",
+        "android_client_info": {
+          "package_name": "com.example.fundatec"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB76PDdwF3HctfyehxI5QIkBtCszAn-uvI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

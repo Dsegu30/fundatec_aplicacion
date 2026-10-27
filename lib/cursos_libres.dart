@@ -370,19 +370,23 @@ class _CursosLibresPageState extends State<CursosLibresPage>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      barrierColor: primaryNavy.withOpacity(0.58),
+      barrierColor: primaryNavy.withValues(alpha: 0.58),
       builder: (_) => DisplayFeatureSubScreen(
         child: Builder(
           builder: (sheetContext) {
-            final altoPantalla = MediaQuery.sizeOf(sheetContext).height;
+            final tamanoPantalla = MediaQuery.sizeOf(sheetContext);
+            final anchoDialogo = math
+                .min(1000.0, tamanoPantalla.width - 24)
+                .clamp(0.0, tamanoPantalla.width)
+                .toDouble();
 
             return SafeArea(
               top: false,
               child: Center(
                 child: Container(
                   constraints: BoxConstraints(
-                    maxWidth: 620,
-                    maxHeight: altoPantalla * 0.88,
+                    maxWidth: anchoDialogo,
+                    maxHeight: tamanoPantalla.height * 0.88,
                   ),
                   margin: const EdgeInsets.fromLTRB(12, 12, 12, 10),
                   child: ClipRRect(
@@ -392,15 +396,15 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                       child: Container(
                         decoration: BoxDecoration(
                           color: esOscuro
-                              ? const Color(0xFF101E2C).withOpacity(0.97)
-                              : Colors.white.withOpacity(0.97),
+                              ? const Color(0xFF101E2C).withValues(alpha: 0.97)
+                              : Colors.white.withValues(alpha: 0.97),
                           borderRadius: BorderRadius.circular(30),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.65),
+                            color: Colors.white.withValues(alpha: 0.65),
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: primaryNavy.withOpacity(0.28),
+                              color: primaryNavy.withValues(alpha: 0.28),
                               blurRadius: 32,
                               offset: const Offset(0, 12),
                             ),
@@ -413,7 +417,10 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               SizedBox(
-                                height: 225,
+                                height: math
+                                    .min(225.0, tamanoPantalla.height * 0.32)
+                                    .clamp(120.0, 225.0)
+                                    .toDouble(),
                                 width: double.infinity,
                                 child: Stack(
                                   fit: StackFit.expand,
@@ -436,9 +443,9 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                                           begin: Alignment.topCenter,
                                           end: Alignment.bottomCenter,
                                           colors: [
-                                            primaryNavy.withOpacity(0.05),
-                                            primaryNavy.withOpacity(0.15),
-                                            primaryNavy.withOpacity(0.92),
+                                            primaryNavy.withValues(alpha: 0.05),
+                                            primaryNavy.withValues(alpha: 0.15),
+                                            primaryNavy.withValues(alpha: 0.92),
                                           ],
                                         ),
                                       ),
@@ -464,14 +471,14 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                                             width: 55,
                                             height: 55,
                                             decoration: BoxDecoration(
-                                              color: Colors.white.withOpacity(
-                                                0.17,
+                                              color: Colors.white.withValues(
+                                                alpha: 0.17,
                                               ),
                                               borderRadius:
                                                   BorderRadius.circular(18),
                                               border: Border.all(
-                                                color: Colors.white.withOpacity(
-                                                  0.38,
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.38,
                                                 ),
                                               ),
                                             ),
@@ -516,10 +523,10 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                                         vertical: 7,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: accentBlue.withOpacity(0.10),
+                                        color: accentBlue.withValues(alpha: 0.10),
                                         borderRadius: BorderRadius.circular(30),
                                         border: Border.all(
-                                          color: accentBlue.withOpacity(0.18),
+                                          color: accentBlue.withValues(alpha: 0.18),
                                         ),
                                       ),
                                       child: Text(
@@ -548,12 +555,12 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                                       padding: const EdgeInsets.all(15),
                                       decoration: BoxDecoration(
                                         color: esOscuro
-                                            ? Colors.white.withOpacity(0.06)
+                                            ? Colors.white.withValues(alpha: 0.06)
                                             : const Color(0xFFEDF5FB),
                                         borderRadius: BorderRadius.circular(18),
                                         border: Border.all(
                                           color: esOscuro
-                                              ? Colors.white.withOpacity(0.12)
+                                              ? Colors.white.withValues(alpha: 0.12)
                                               : const Color(0xFFD8E8F5),
                                         ),
                                       ),
@@ -636,8 +643,13 @@ class _CursosLibresPageState extends State<CursosLibresPage>
   // TARJETAS DE CURSOS
   // ----------------------------------------------------------
 
-  Widget _crearTarjeta(_CursoLibre curso, {required double height}) {
+  Widget _crearTarjeta(
+    _CursoLibre curso, {
+    required double height,
+    required double cardWidth,
+  }) {
     final colores = _coloresCurso(curso);
+    final contenidoAmplio = height >= 200 || cardWidth >= 600;
     const radio = 25.0;
 
     return GelPress(
@@ -657,10 +669,10 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              border: Border.all(color: Colors.white.withOpacity(0.38)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.38)),
               boxShadow: [
                 BoxShadow(
-                  color: colores.first.withOpacity(0.22),
+                  color: colores.first.withValues(alpha: 0.22),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -672,31 +684,15 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                 fit: StackFit.expand,
                 children: [
                   Positioned.fill(
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: SizedBox(
-                        width: height >= 200 ? 300 : 240,
-                        child: ShaderMask(
-                          blendMode: BlendMode.dstIn,
-                          shaderCallback: (bounds) {
-                            return const LinearGradient(
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                              colors: [
-                                Colors.transparent,
-                                Color(0x66FFFFFF),
-                                Colors.white,
-                              ],
-                              stops: [0, 0.40, 1],
-                            ).createShader(bounds);
-                          },
-                          child: Image.network(
-                            curso.imagen,
-                            fit: BoxFit.cover,
-                            filterQuality: FilterQuality.high,
-                            errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                          ),
-                        ),
+                    child: Opacity(
+                      opacity: 0.68,
+                      child: Image.network(
+                        curso.imagen,
+                        fit: BoxFit.cover,
+                        filterQuality: FilterQuality.high,
+                        alignment: Alignment.centerRight,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const SizedBox.shrink(),
                       ),
                     ),
                   ),
@@ -707,11 +703,11 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                           colors: [
-                            colores.first.withOpacity(0.99),
-                            colores.first.withOpacity(0.92),
-                            colores.last.withOpacity(0.52),
+                            colores.first.withValues(alpha: 0.88),
+                            colores.first.withValues(alpha: 0.66),
+                            colores.last.withValues(alpha: 0.22),
                           ],
-                          stops: const [0, 0.46, 1],
+                          stops: const [0.0, 0.40, 1.0],
                         ),
                       ),
                     ),
@@ -719,27 +715,9 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                   Positioned.fill(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.white.withOpacity(0.08),
-                            Colors.transparent,
-                            Colors.black.withOpacity(0.07),
-                          ],
-                        ),
+                        color: colores.first.withValues(alpha: 0.06),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    top: -45,
-                    right: 65,
-                    child: _burbujaGlass(140, Colors.white.withOpacity(0.10)),
-                  ),
-                  Positioned(
-                    bottom: -50,
-                    right: 80,
-                    child: _burbujaGlass(140, accentCyan.withOpacity(0.10)),
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(17, 16, 45, 16),
@@ -753,10 +731,10 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                               width: height >= 200 ? 58 : 51,
                               height: height >= 200 ? 58 : 51,
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.17),
+                                color: Colors.white.withValues(alpha: 0.17),
                                 borderRadius: BorderRadius.circular(17),
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.38),
+                                  color: Colors.white.withValues(alpha: 0.38),
                                 ),
                               ),
                               child: Icon(
@@ -780,13 +758,13 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: height >= 200 ? 17 : 15.5,
+                                  fontSize: contenidoAmplio ? 17 : 15.5,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: -0.3,
                                   height: 1.16,
                                   shadows: [
                                     Shadow(
-                                      color: Colors.black.withOpacity(0.16),
+                                      color: Colors.black.withValues(alpha: 0.16),
                                       blurRadius: 8,
                                       offset: const Offset(0, 1),
                                     ),
@@ -796,11 +774,11 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                               const SizedBox(height: 7),
                               Text(
                                 curso.descripcion,
-                                maxLines: height >= 200 ? 3 : 2,
+                                maxLines: contenidoAmplio ? 3 : 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.90),
-                                  fontSize: height >= 200 ? 12 : 11.2,
+                                  color: Colors.white.withValues(alpha: 0.90),
+                                  fontSize: contenidoAmplio ? 12 : 11.2,
                                   height: 1.36,
                                 ),
                               ),
@@ -826,10 +804,10 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                       width: 33,
                       height: 33,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.20),
+                        color: Colors.white.withValues(alpha: 0.20),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.42),
+                          color: Colors.white.withValues(alpha: 0.42),
                         ),
                       ),
                       child: const Icon(
@@ -857,9 +835,9 @@ class _CursosLibresPageState extends State<CursosLibresPage>
           constraints: const BoxConstraints(maxWidth: 180),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.16),
+            color: Colors.white.withValues(alpha: 0.16),
             borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: Colors.white.withOpacity(0.28)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
           ),
           child: Text(
             texto,
@@ -890,9 +868,9 @@ class _CursosLibresPageState extends State<CursosLibresPage>
               width: 43,
               height: 43,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.19),
+                color: Colors.white.withValues(alpha: 0.19),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.40)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.40)),
               ),
               child: Icon(icono, color: Colors.white, size: 22),
             ),
@@ -923,10 +901,10 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                 colors: [Color(0xFF164B73), Color(0xFF061424)],
               ),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.white.withOpacity(0.30)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.30)),
               boxShadow: [
                 BoxShadow(
-                  color: primaryNavy.withOpacity(0.20),
+                  color: primaryNavy.withValues(alpha: 0.20),
                   blurRadius: 16,
                   offset: const Offset(0, 7),
                 ),
@@ -947,21 +925,6 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _burbujaGlass(double size, Color color) {
-    return IgnorePointer(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [color, color.withOpacity(0.35), Colors.transparent],
           ),
         ),
       ),
@@ -990,7 +953,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
         borderRadius: borderRadius,
         boxShadow: [
           BoxShadow(
-            color: primaryNavy.withOpacity(0.20),
+            color: primaryNavy.withValues(alpha: 0.20),
             blurRadius: 22,
             offset: const Offset(0, 8),
           ),
@@ -1000,16 +963,6 @@ class _CursosLibresPageState extends State<CursosLibresPage>
         borderRadius: borderRadius,
         child: Stack(
           children: [
-            Positioned(
-              top: -95,
-              right: -55,
-              child: _burbujaGlass(245, accentBlue.withOpacity(0.16)),
-            ),
-            Positioned(
-              bottom: -115,
-              left: -50,
-              child: _burbujaGlass(220, accentCyan.withOpacity(0.08)),
-            ),
             Padding(
               padding: EdgeInsets.fromLTRB(
                 horizontalPadding,
@@ -1020,25 +973,9 @@ class _CursosLibresPageState extends State<CursosLibresPage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      AppBackButton(
-                        onDarkBackground: true,
-                        onPressed: () => Navigator.of(context).maybePop(),
-                      ),
-                      const Spacer(),
-                      GelPress(
-                        child: IconButton(
-                          tooltip: 'Avisos',
-                          onPressed: _abrirAvisos,
-                          icon: const Icon(
-                            Icons.notifications_none_rounded,
-                            color: Colors.white,
-                            size: 26,
-                          ),
-                        ),
-                      ),
-                    ],
+                  AppBackButton(
+                    onDarkBackground: true,
+                    onPressed: () => Navigator.of(context).maybePop(),
                   ),
                   SizedBox(height: compact ? 5 : 10),
                   Text(
@@ -1067,10 +1004,10 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                         vertical: 11,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.10),
+                        color: Colors.white.withValues(alpha: 0.10),
                         borderRadius: BorderRadius.circular(15),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.18),
+                          color: Colors.white.withValues(alpha: 0.18),
                         ),
                       ),
                       child: const Row(
@@ -1117,14 +1054,16 @@ class _CursosLibresPageState extends State<CursosLibresPage>
         final anchoDisponible = constraints.maxWidth;
         final hinge = ResponsiveLayout.verticalHinge(context);
 
-        final columnas = ResponsiveLayout.columnsForWidth(
+        final columnasSugeridas = ResponsiveLayout.columnsForWidth(
           anchoDisponible,
           hinge: hinge,
           threeColumnMinWidth: 1050,
           twoColumnMinWidth: 570,
         );
-
         final landscape = ancho > alto && alto < 600;
+        final columnas = landscape && hinge == null && anchoDisponible < 900
+            ? 1
+            : columnasSugeridas;
         final escalaTexto = MediaQuery.textScalerOf(context).scale(1);
         final alturaBase = landscape
             ? 176.0
@@ -1156,12 +1095,12 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                   ),
                   decoration: BoxDecoration(
                     color: esOscuro
-                        ? Colors.white.withOpacity(0.07)
-                        : Colors.white.withOpacity(0.82),
+                        ? Colors.white.withValues(alpha: 0.07)
+                        : Colors.white.withValues(alpha: 0.82),
                     borderRadius: BorderRadius.circular(15),
                     border: Border.all(
                       color: esOscuro
-                          ? Colors.white.withOpacity(0.12)
+                          ? Colors.white.withValues(alpha: 0.12)
                           : Colors.white,
                     ),
                   ),
@@ -1224,7 +1163,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                                 borderRadius: BorderRadius.circular(10),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: color.withOpacity(0.25),
+                                    color: color.withValues(alpha: 0.25),
                                     blurRadius: 8,
                                   ),
                                 ],
@@ -1246,10 +1185,10 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                                 vertical: 5,
                               ),
                               decoration: BoxDecoration(
-                                color: color.withOpacity(0.11),
+                                color: color.withValues(alpha: 0.11),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: color.withOpacity(0.14),
+                                  color: color.withValues(alpha: 0.14),
                                 ),
                               ),
                               child: Text(
@@ -1273,6 +1212,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                                 _crearTarjeta(
                                   cursosGrupo[i],
                                   height: alturaTarjeta,
+                                  cardWidth: anchoDisponible,
                                 ),
                               ],
                             ],
@@ -1292,6 +1232,9 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                             itemBuilder: (context, index) => _crearTarjeta(
                               cursosGrupo[index],
                               height: alturaTarjeta,
+                              cardWidth:
+                                  (anchoDisponible - espacio * (columnas - 1)) /
+                                  columnas,
                             ),
                           ),
                       ],
@@ -1319,13 +1262,13 @@ class _CursosLibresPageState extends State<CursosLibresPage>
           padding: const EdgeInsets.all(17),
           decoration: BoxDecoration(
             color: dark
-                ? Colors.white.withOpacity(0.045)
-                : Colors.white.withOpacity(0.76),
+                ? Colors.white.withValues(alpha: 0.045)
+                : Colors.white.withValues(alpha: 0.76),
             borderRadius: BorderRadius.circular(22),
             border: Border.all(
               color: dark
-                  ? Colors.white.withOpacity(0.10)
-                  : Colors.white.withOpacity(0.95),
+                  ? Colors.white.withValues(alpha: 0.10)
+                  : Colors.white.withValues(alpha: 0.95),
             ),
           ),
           child: Row(
@@ -1358,7 +1301,7 @@ class _CursosLibresPageState extends State<CursosLibresPage>
                 ),
               ),
               const Icon(
-                Icons.auto_awesome_rounded,
+                Icons.arrow_forward_rounded,
                 color: accentBlue,
                 size: 20,
               ),
@@ -1386,23 +1329,16 @@ class _CursosLibresPageState extends State<CursosLibresPage>
             final width = constraints.maxWidth;
             final height = constraints.maxHeight;
             final wide = width >= 720;
-            final landscape = width > height && height < 600;
+            final landscape = ResponsiveLayout.isCompactLandscape(
+              width,
+              height,
+            );
 
-            final maxWidth = wide
-                ? 1120.0
-                : landscape
-                ? 820.0
-                : width >= 560
-                ? 680.0
-                : 520.0;
+            final maxWidth = ResponsiveLayout.contentMaxWidth(width);
 
             return Stack(
               children: [
-                Positioned.fill(
-                  child: _FondoLiquidGlass(
-                    dark: theme.brightness == Brightness.dark,
-                  ),
-                ),
+                const FondoAppDifuminado(),
                 Align(
                   alignment: Alignment.topCenter,
                   child: SizedBox(
@@ -1455,83 +1391,6 @@ class _CursosLibresPageState extends State<CursosLibresPage>
               ],
             );
           },
-        ),
-      ),
-    );
-  }
-}
-
-// ============================================================
-// FONDO LIQUID GLASS
-// ============================================================
-
-class _FondoLiquidGlass extends StatelessWidget {
-  final bool dark;
-
-  const _FondoLiquidGlass({required this.dark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: dark
-                  ? const [
-                      Color(0xFF0B1420),
-                      Color(0xFF101C2A),
-                      Color(0xFF0B1826),
-                    ]
-                  : const [
-                      Color(0xFFF4F8FC),
-                      Color(0xFFEAF3FA),
-                      Color(0xFFF8FAFD),
-                    ],
-            ),
-          ),
-        ),
-        Positioned(
-          top: 140,
-          left: -100,
-          child: _burbujaFondo(
-            260,
-            const Color(0xFF0EA5E9).withOpacity(dark ? 0.09 : 0.10),
-          ),
-        ),
-        Positioned(
-          top: 410,
-          right: -115,
-          child: _burbujaFondo(
-            300,
-            const Color(0xFF6366F1).withOpacity(dark ? 0.08 : 0.065),
-          ),
-        ),
-        Positioned(
-          bottom: 90,
-          left: 55,
-          child: _burbujaFondo(
-            180,
-            const Color(0xFF14B8A6).withOpacity(dark ? 0.06 : 0.055),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _burbujaFondo(double size, Color color) {
-    return IgnorePointer(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [color, color.withOpacity(0.35), Colors.transparent],
-          ),
         ),
       ),
     );

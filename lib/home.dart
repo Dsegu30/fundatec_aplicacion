@@ -5,6 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
 import 'app_theme.dart';
 import 'calendario.dart';
 import 'perfil.dart';
@@ -15,9 +19,16 @@ import 'posgrados.dart';
 import 'navegacion_glass.dart';
 import 'responsive_layout.dart';
 import 'cursos_libres.dart';
+import 'especialidades.dart';
+import 'registro.dart' as registro;
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  await FirebaseAuth.instance.authStateChanges().first;
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -30,9 +41,10 @@ void main() {
 
   runApp(const TecApp());
 }
-
 class TecApp extends StatefulWidget {
-  const TecApp({super.key});
+  const TecApp({super.key, this.onLogout});
+
+  final Future<void> Function()? onLogout;
 
   @override
   State<TecApp> createState() => _TecAppState();
@@ -42,10 +54,17 @@ class _TecAppState extends State<TecApp> {
   static const String _themeModeKey = 'app_theme_mode';
 
   ThemeMode _themeMode = ThemeMode.light;
+  bool _mostrarRegistro = true;
 
   @override
   void initState() {
     super.initState();
+    try {
+      _mostrarRegistro = FirebaseAuth.instance.currentUser == null;
+    } catch (error) {
+      debugPrint('No se pudo recuperar la sesión de Firebase: $error');
+      _mostrarRegistro = true;
+    }
     _loadThemeMode();
   }
 
@@ -107,6 +126,21 @@ class _TecAppState extends State<TecApp> {
     }
   }
 
+  Future<void> _cerrarSesion() async {
+    final onLogout = widget.onLogout;
+    if (onLogout != null) {
+      await onLogout();
+      return;
+    }
+
+    await FirebaseAuth.instance.signOut();
+    if (mounted) setState(() => _mostrarRegistro = true);
+  }
+
+  void _registroCompletado() {
+    if (mounted) setState(() => _mostrarRegistro = false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final dark = _themeMode == ThemeMode.dark;
@@ -115,6 +149,7 @@ class _TecAppState extends State<TecApp> {
       themeMode: _themeMode,
       onThemeModeChanged: _setThemeMode,
       child: MaterialApp(
+        key: ValueKey<bool>(_mostrarRegistro),
         title: 'TEC Móvil',
         debugShowCheckedModeBanner: false,
         scrollBehavior: const ScrollBehaviorInvisible(),
@@ -137,10 +172,16 @@ class _TecAppState extends State<TecApp> {
                   ? Brightness.light
                   : Brightness.dark,
             ),
-            child: child ?? const SizedBox.shrink(),
+            child: OrientationChangeTransition(
+              child: child ?? const SizedBox.shrink(),
+            ),
           );
         },
-        home: const TecHomeScreen(),
+        home: _mostrarRegistro
+            ? registro.RegistroPage(
+                onRegistrationComplete: _registroCompletado,
+              )
+            : TecHomeScreen(onLogout: _cerrarSesion),
       ),
     );
   }
@@ -188,7 +229,9 @@ class AppSearchItem {
 // ============================================================
 
 class TecHomeScreen extends StatefulWidget {
-  const TecHomeScreen({super.key});
+  const TecHomeScreen({super.key, this.onLogout});
+
+  final Future<void> Function()? onLogout;
 
   @override
   State<TecHomeScreen> createState() => _TecHomeScreenState();
@@ -286,7 +329,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
       subtitle: 'Conoce las opciones de formación industrial.',
       icon: Icons.engineering_rounded,
       category: 'Académico',
-      onTap: () => _showSnackbar('Especialidades Industriales: próximamente'),
+      onTap: _openEspecialidades,
     ),
   ];
 
@@ -402,8 +445,19 @@ class _TecHomeScreenState extends State<TecHomeScreen>
     HapticFeedback.selectionClick();
     FocusScope.of(context).unfocus();
 
+    Navigator.of(
+      context,
+    ).push(appPageRoute<void>(builder: (context) => const CursosLibresPage()));
+  }
+
+  void _openEspecialidades() {
+    HapticFeedback.selectionClick();
+    FocusScope.of(context).unfocus();
+
     Navigator.of(context).push(
-      appPageRoute<void>(builder: (context) => const CursosLibresPage()),
+      appPageRoute<void>(
+        builder: (context) => const EspecialidadesIndustrialesPage(),
+      ),
     );
   }
 
@@ -502,7 +556,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
     return Scaffold(
       key: _scaffoldKey,
       drawer: _buildFloatingDrawer(),
-      drawerScrimColor: primaryNavy.withOpacity(0.48),
+      drawerScrimColor: primaryNavy.withValues(alpha: 0.48),
       drawerEdgeDragWidth: 24,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -513,15 +567,11 @@ class _TecHomeScreenState extends State<TecHomeScreen>
             final height = constraints.maxHeight;
 
             final isFoldableOrTablet = width >= 720;
-            final isCompactLandscape = width > height && height < 600;
-
-            final contentMaxWidth = isFoldableOrTablet
-                ? 1120.0
-                : isCompactLandscape
-                ? 720.0
-                : width >= 560
-                ? 640.0
-                : 460.0;
+            final isCompactLandscape = ResponsiveLayout.isCompactLandscape(
+              width,
+              height,
+            );
+            final contentMaxWidth = ResponsiveLayout.contentMaxWidth(width);
 
             final sideBySideCards = width >= 900;
 
@@ -540,6 +590,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
+                    const FondoAppDifuminado(),
                     Positioned.fill(
                       child: Align(
                         alignment: Alignment.topCenter,
@@ -557,7 +608,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                                 alignment: Alignment.topCenter,
                                 children: [
                                   ...previousChildren,
-                                  if (currentChild != null) currentChild,
+                                  ?currentChild,
                                 ],
                               );
                             },
@@ -626,6 +677,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                                   ? PerfilPage(
                                       embedded: true,
                                       onBack: _goHome,
+                                      onLogout: widget.onLogout,
                                       onSectionSelected: (index) {
                                         if (index == 0) {
                                           _goHome();
@@ -670,7 +722,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                                           SliverPadding(
                                             padding: EdgeInsets.fromLTRB(
                                               isFoldableOrTablet ? 24 : 16,
-                                              24,
+                                              isCompactLandscape ? 12 : 24,
                                               isFoldableOrTablet ? 24 : 16,
                                               isCompactLandscape ? 112 : 130,
                                             ),
@@ -732,6 +784,8 @@ class _TecHomeScreenState extends State<TecHomeScreen>
   // ==========================================================
 
   Widget _buildHeader({required bool compact, required bool wide}) {
+    if (compact) return _buildCompactLandscapeHeader();
+
     final horizontalPadding = wide ? 32.0 : 20.0;
     final searchActive = _searchHasFocus || _searchQuery.isNotEmpty;
 
@@ -745,7 +799,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
         ),
         boxShadow: [
           BoxShadow(
-            color: primaryNavy.withOpacity(0.30),
+            color: primaryNavy.withValues(alpha: 0.30),
             blurRadius: 24,
             offset: const Offset(0, 10),
           ),
@@ -869,10 +923,10 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                               vertical: 9,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.25),
+                              color: Colors.black.withValues(alpha: 0.25),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: Colors.white.withOpacity(0.12),
+                                color: Colors.white.withValues(alpha: 0.12),
                               ),
                             ),
                             child: const Row(
@@ -908,13 +962,13 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                             borderRadius: BorderRadius.circular(23),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.20),
+                                color: Colors.black.withValues(alpha: 0.20),
                                 blurRadius: 22,
                                 offset: const Offset(0, 8),
                               ),
                               BoxShadow(
-                                color: accentTeal.withOpacity(
-                                  searchActive ? 0.30 : 0.12,
+                                color: accentTeal.withValues(
+                                  alpha: searchActive ? 0.30 : 0.12,
                                 ),
                                 blurRadius: searchActive ? 24 : 15,
                                 spreadRadius: searchActive ? 1 : 0,
@@ -936,21 +990,21 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                     colors: [
-                                      Colors.white.withOpacity(
-                                        searchActive ? 0.28 : 0.20,
+                                      Colors.white.withValues(
+                                        alpha: searchActive ? 0.28 : 0.20,
                                       ),
                                       const Color(
                                         0xFFB8F4FF,
-                                      ).withOpacity(searchActive ? 0.17 : 0.11),
-                                      const Color(0xFF70CFFF).withOpacity(0.09),
+                                      ).withValues(alpha: searchActive ? 0.17 : 0.11),
+                                      const Color(0xFF70CFFF).withValues(alpha: 0.09),
                                     ],
                                   ),
                                   borderRadius: BorderRadius.circular(23),
                                   border: Border.all(
                                     color: searchActive
                                         ? const Color(0xFF9DEBFF)
-                                              .withOpacity(0.88)
-                                        : Colors.white.withOpacity(0.42),
+                                              .withValues(alpha: 0.88)
+                                        : Colors.white.withValues(alpha: 0.42),
                                     width: searchActive ? 1.5 : 1,
                                   ),
                                 ),
@@ -967,11 +1021,11 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                                           decoration: BoxDecoration(
                                             gradient: LinearGradient(
                                               colors: [
-                                                Colors.white.withOpacity(0),
-                                                Colors.white.withOpacity(
-                                                  searchActive ? 0.95 : 0.70,
+                                                Colors.white.withValues(alpha: 0),
+                                                Colors.white.withValues(
+                                                  alpha: searchActive ? 0.95 : 0.70,
                                                 ),
-                                                Colors.white.withOpacity(0),
+                                                Colors.white.withValues(alpha: 0),
                                               ],
                                             ),
                                           ),
@@ -989,8 +1043,8 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                                             shape: BoxShape.circle,
                                             gradient: RadialGradient(
                                               colors: [
-                                                Colors.white.withOpacity(0.18),
-                                                Colors.white.withOpacity(0.02),
+                                                Colors.white.withValues(alpha: 0.18),
+                                                Colors.white.withValues(alpha: 0.02),
                                                 Colors.transparent,
                                               ],
                                             ),
@@ -1009,10 +1063,10 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                                             shape: BoxShape.circle,
                                             gradient: RadialGradient(
                                               colors: [
-                                                accentTeal.withOpacity(
-                                                  searchActive ? 0.28 : 0.16,
+                                                accentTeal.withValues(
+                                                  alpha: searchActive ? 0.28 : 0.16,
                                                 ),
-                                                accentTeal.withOpacity(0.03),
+                                                accentTeal.withValues(alpha: 0.03),
                                                 Colors.transparent,
                                               ],
                                             ),
@@ -1036,17 +1090,17 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                                                 begin: Alignment.topLeft,
                                                 end: Alignment.bottomRight,
                                                 colors: [
-                                                  Colors.white.withOpacity(
-                                                    0.28,
+                                                  Colors.white.withValues(
+                                                    alpha: 0.28,
                                                   ),
-                                                  Colors.white.withOpacity(
-                                                    0.06,
+                                                  Colors.white.withValues(
+                                                    alpha: 0.06,
                                                   ),
                                                 ],
                                               ),
                                               border: Border.all(
-                                                color: Colors.white.withOpacity(
-                                                  0.25,
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.25,
                                                 ),
                                               ),
                                             ),
@@ -1103,11 +1157,11 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                                                 ),
                                                 decoration: BoxDecoration(
                                                   color: Colors.white
-                                                      .withOpacity(0.24),
+                                                      .withValues(alpha: 0.24),
                                                   shape: BoxShape.circle,
                                                   border: Border.all(
                                                     color: Colors.white
-                                                        .withOpacity(0.30),
+                                                        .withValues(alpha: 0.30),
                                                   ),
                                                 ),
                                                 child: const Icon(
@@ -1138,6 +1192,209 @@ class _TecHomeScreenState extends State<TecHomeScreen>
     );
   }
 
+  Widget _buildCompactLandscapeHeader() {
+    final searchActive = _searchHasFocus || _searchQuery.isNotEmpty;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: primaryNavy,
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: primaryNavy.withValues(alpha: 0.28),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.14,
+                child: Image.network(
+                  'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=2200&q=92',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const SizedBox.shrink(),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    height: 42,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Positioned(
+                          left: 48,
+                          right: 48,
+                          top: 0,
+                          bottom: 0,
+                          child: Image.asset(
+                            'assets/images/tec_logo.png',
+                            fit: BoxFit.contain,
+                            filterQuality: FilterQuality.high,
+                            semanticLabel: 'Tecnológico de Costa Rica',
+                          ),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildLiquidGlassButton(
+                              icon: Icons.menu_rounded,
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                _scaffoldKey.currentState?.openDrawer();
+                              },
+                            ),
+                            Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                _buildLiquidGlassButton(
+                                  icon: Icons.notifications_none_rounded,
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    _navigateToSection(2);
+                                  },
+                                ),
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: alertRed,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: primaryNavy,
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  const Text(
+                    'Hola, Bienvenido',
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 19,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.4,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    'Escuela de Ingeniería en Producción Industrial',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(22),
+                    child: BackdropFilter(
+                      filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                      child: Container(
+                        height: 44,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.17),
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.40),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.search_rounded,
+                              color: searchActive
+                                  ? const Color(0xFFB8F4FF)
+                                  : Colors.white,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: TextField(
+                                controller: _searchController,
+                                focusNode: _searchFocusNode,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                ),
+                                cursorColor: const Color(0xFFB8F4FF),
+                                decoration: const InputDecoration(
+                                  hintText:
+                                      'Buscar técnico, carreras, calendario...',
+                                  hintStyle: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12.5,
+                                  ),
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (_searchQuery.isNotEmpty)
+                              GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  _clearSearch();
+                                },
+                                child: const Padding(
+                                  padding: EdgeInsets.all(5),
+                                  child: Icon(
+                                    Icons.close_rounded,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildLiquidGlassButton({
     required IconData icon,
     required VoidCallback onTap,
@@ -1148,7 +1405,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
         child: BackdropFilter(
           filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
           child: Material(
-            color: Colors.white.withOpacity(0.12),
+            color: Colors.white.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(16),
             child: InkWell(
               onTap: onTap,
@@ -1186,7 +1443,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 15,
                       offset: const Offset(0, 5),
                     ),
@@ -1266,7 +1523,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
             border: Border.all(color: theme.dividerColor),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.03),
+                color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -1378,7 +1635,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
         title: 'Especialidades\nIndustriales',
         description: 'Conoce las especialidades industriales y las opciones de formación disponibles.',
         imageUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&w=1600&q=95',
-        onTap: () => _showSnackbar('Especialidades Industriales: próximamente'),
+        onTap: _openEspecialidades,
       ),
       _MainCardData(
         gradientColors: [deepBlue, const Color(0xFF1B3C73)],
@@ -1418,7 +1675,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
         );
         final shortLandscape =
             displaySize.width > displaySize.height && displaySize.height < 600;
-        final cardHeight = shortLandscape ? 164.0 : 190.0;
+        final cardHeight = shortLandscape ? 148.0 : 190.0;
         final singleColumnHeight = compact ? 136.0 : 154.0;
 
         if (columns == 1) {
@@ -1570,7 +1827,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: data.gradientColors.first.withOpacity(0.23),
+                      color: data.gradientColors.first.withValues(alpha: 0.23),
                       blurRadius: 22,
                       offset: const Offset(0, 9),
                     ),
@@ -1605,9 +1862,9 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                                 fit: BoxFit.cover,
                                 filterQuality: FilterQuality.high,
                                 alignment: Alignment.center,
-                                color: Colors.white.withOpacity(0.58),
+                                color: Colors.white.withValues(alpha: 0.58),
                                 colorBlendMode: BlendMode.softLight,
-                                errorBuilder: (_, __, ___) =>
+                                errorBuilder: (_, _, _) =>
                                     const SizedBox.shrink(),
                                 loadingBuilder: (context, child, progress) {
                                   if (progress == null) return child;
@@ -1625,9 +1882,9 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                               begin: Alignment.centerLeft,
                               end: Alignment.centerRight,
                               colors: [
-                                data.gradientColors.first.withOpacity(0.99),
-                                data.gradientColors.first.withOpacity(0.91),
-                                data.gradientColors.last.withOpacity(0.48),
+                                data.gradientColors.first.withValues(alpha: 0.99),
+                                data.gradientColors.first.withValues(alpha: 0.91),
+                                data.gradientColors.last.withValues(alpha: 0.48),
                               ],
                               stops: const [0, 0.48, 1],
                             ),
@@ -1642,7 +1899,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                           height: 120,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.045),
+                            color: Colors.white.withValues(alpha: 0.045),
                           ),
                         ),
                       ),
@@ -1659,14 +1916,14 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                               width: wide ? 56 : 48,
                               height: wide ? 56 : 48,
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
+                                color: Colors.white.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(17),
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.30),
+                                  color: Colors.white.withValues(alpha: 0.30),
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.08),
+                                    color: Colors.black.withValues(alpha: 0.08),
                                     blurRadius: 12,
                                     offset: const Offset(0, 4),
                                   ),
@@ -1697,7 +1954,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                                       height: 1.12,
                                       shadows: [
                                         Shadow(
-                                          color: Colors.black.withOpacity(0.15),
+                                          color: Colors.black.withValues(alpha: 0.15),
                                           blurRadius: 8,
                                           offset: const Offset(0, 1),
                                         ),
@@ -1710,7 +1967,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                                     maxLines: wide ? 3 : 2,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      color: Colors.white.withOpacity(0.88),
+                                      color: Colors.white.withValues(alpha: 0.88),
                                       fontSize: wide ? 11.5 : 11.2,
                                       height: 1.35,
                                       letterSpacing: 0.05,
@@ -1729,10 +1986,10 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                           width: 34,
                           height: 34,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.19),
+                            color: Colors.white.withValues(alpha: 0.19),
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.34),
+                              color: Colors.white.withValues(alpha: 0.34),
                             ),
                           ),
                           child: const Icon(
@@ -1804,7 +2061,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                       border: Border.all(color: theme.dividerColor),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
+                          color: Colors.black.withValues(alpha: 0.03),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -1816,7 +2073,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: items[i].color.withOpacity(0.1),
+                            color: items[i].color.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Icon(
@@ -1896,7 +2153,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: item.color.withOpacity(0.1),
+                      color: item.color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Icon(item.icon, color: item.color, size: 22),
@@ -1996,7 +2253,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                   border: Border.all(color: theme.dividerColor),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
+                      color: Colors.black.withValues(alpha: 0.03),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -2088,7 +2345,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
         child: BackdropFilter(
           filter: ui.ImageFilter.blur(sigmaX: 22, sigmaY: 22),
           child: Container(
-            color: Theme.of(context).colorScheme.surface.withOpacity(0.97),
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.97),
             child: SafeArea(
               child: ListView(
                 padding: EdgeInsets.zero,
@@ -2181,7 +2438,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                     1,
                   ),
                   _drawerTile(
-                    Icons.notifications_none_rounded,
+                    Icons.campaign_outlined,
                     'Avisos',
                     'Novedades y notificaciones',
                     2,

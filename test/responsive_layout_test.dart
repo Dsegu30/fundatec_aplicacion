@@ -10,6 +10,7 @@ import 'package:fundatec/main.dart';
 import 'package:fundatec/notificaciones.dart';
 import 'package:fundatec/perfil.dart';
 import 'package:fundatec/posgrados.dart';
+import 'package:fundatec/posgrados_detalle.dart';
 import 'package:fundatec/tecnicos.dart';
 
 void expectNoLayoutException(WidgetTester tester) {
@@ -76,10 +77,6 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       expectNoLayoutException(tester);
 
-      await tester.pumpWidget(const MaterialApp(home: CursosLibresPage()));
-      await tester.pump(const Duration(milliseconds: 700));
-      expectNoLayoutException(tester);
-
       await tester.pumpWidget(const MaterialApp(home: LicenciaturaPage()));
       await tester.pump(const Duration(milliseconds: 100));
       expectNoLayoutException(tester);
@@ -96,6 +93,65 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       expectNoLayoutException(tester);
     });
+  }
+
+  for (final size in <Size>[
+    const Size(280, 600),
+    const Size(320, 568),
+    const Size(360, 800),
+    const Size(412, 915),
+    const Size(745, 832),
+    const Size(884, 344),
+    const Size(1024, 1366),
+    const Size(1366, 768),
+    const Size(1920, 1080),
+    const Size(800, 360),
+    const Size(768, 1024),
+    const Size(1440, 900),
+  ]) {
+    testWidgets('cursos libres se adapta a ${size.width}x${size.height}', (
+      WidgetTester tester,
+    ) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(const MaterialApp(home: CursosLibresPage()));
+      await tester.pump(const Duration(milliseconds: 700));
+      expectNoLayoutException(tester);
+    });
+  }
+
+  for (final size in <Size>[
+    const Size(280, 600),
+    const Size(884, 344),
+    const Size(884, 832),
+    const Size(1366, 768),
+    const Size(1920, 1080),
+  ]) {
+    testWidgets(
+      'detalles de posgrados se adaptan a ${size.width}x${size.height}',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        const pages = <Widget>[
+          MaestriaCalidadAcademicaPage(),
+          MaestriaCalidadProfesionalPage(),
+          MaestriaCadenaAbastecimientoPage(),
+          MaestriaSistemasModernosManufacturaPage(),
+        ];
+
+        for (final page in pages) {
+          await tester.pumpWidget(MaterialApp(home: page));
+          await tester.pump(const Duration(milliseconds: 600));
+          expectNoLayoutException(tester);
+        }
+      },
+    );
   }
 
   testWidgets('licenciatura evita una bisagra vertical en pantalla plegable', (
@@ -167,6 +223,103 @@ void main() {
     expect(cardRect.width, greaterThan(700));
     expect(cardRect.left, lessThan(432));
     expect(cardRect.right, greaterThan(452));
+    expectNoLayoutException(tester);
+  });
+
+  testWidgets('posgrados aprovecha ambos paneles cuando el Fold está abierto', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(884, 832);
+    tester.view.devicePixelRatio = 1;
+    tester.view.displayFeatures = const <ui.DisplayFeature>[
+      ui.DisplayFeature(
+        bounds: Rect.fromLTRB(432, 0, 452, 832),
+        type: ui.DisplayFeatureType.hinge,
+        state: ui.DisplayFeatureState.postureFlat,
+      ),
+    ];
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetDisplayFeatures);
+
+    await tester.pumpWidget(const MaterialApp(home: PosgradosPage()));
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(tester.getSize(find.byType(Scaffold)).width, 884);
+
+    final doctorado = tester.getRect(
+      find
+          .ancestor(
+            of: find.textContaining('Doctorado Académico'),
+            matching: find.byType(InkWell),
+          )
+          .first,
+    );
+    final calidadAcademica = tester.getRect(
+      find
+          .ancestor(
+            of: find.textContaining('Calidad Académica'),
+            matching: find.byType(InkWell),
+          )
+          .first,
+    );
+    expect(doctorado.right, lessThanOrEqualTo(432));
+    expect(calidadAcademica.left, greaterThanOrEqualTo(452));
+    expectNoLayoutException(tester);
+
+    const detailPages = <Widget>[
+      MaestriaCalidadAcademicaPage(),
+      MaestriaCalidadProfesionalPage(),
+      MaestriaCadenaAbastecimientoPage(),
+      MaestriaSistemasModernosManufacturaPage(),
+    ];
+    for (final page in detailPages) {
+      await tester.pumpWidget(MaterialApp(home: page));
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(tester.getSize(find.byType(Scaffold)).width, 884);
+      expectNoLayoutException(tester);
+    }
+  });
+
+  testWidgets('Posgrados no se limita a un panel con el Fold medio abierto', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(884, 832);
+    tester.view.devicePixelRatio = 1;
+    tester.view.displayFeatures = const <ui.DisplayFeature>[
+      ui.DisplayFeature(
+        bounds: Rect.fromLTRB(432, 0, 452, 832),
+        type: ui.DisplayFeatureType.hinge,
+        state: ui.DisplayFeatureState.postureHalfOpened,
+      ),
+    ];
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetDisplayFeatures);
+
+    await tester.pumpWidget(const MaterialApp(home: PosgradosPage()));
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(tester.getSize(find.byType(Scaffold)).width, 884);
+
+    final doctorado = tester.getRect(
+      find
+          .ancestor(
+            of: find.textContaining('Doctorado Académico'),
+            matching: find.byType(InkWell),
+          )
+          .first,
+    );
+    final calidadAcademica = tester.getRect(
+      find
+          .ancestor(
+            of: find.textContaining('Calidad Académica'),
+            matching: find.byType(InkWell),
+          )
+          .first,
+    );
+    expect(doctorado.right, lessThanOrEqualTo(432));
+    expect(calidadAcademica.left, greaterThanOrEqualTo(452));
     expectNoLayoutException(tester);
   });
 

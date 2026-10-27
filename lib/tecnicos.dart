@@ -7,6 +7,7 @@ import 'navegacion_glass.dart';
 import 'notificaciones.dart';
 import 'perfil.dart';
 import 'responsive_layout.dart';
+import 'tecnico_detalle.dart';
 
 class TecnicosPage extends StatefulWidget {
   const TecnicosPage({super.key});
@@ -27,6 +28,7 @@ class _TecnicosPageState extends State<TecnicosPage> {
       icono: Icons.verified_outlined,
       colores: [Color(0xFF0D233A), Color(0xFF1B3C73)],
       imagen: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1500&q=92',
+      detalle: ProgramaTecnico.calidad,
     ),
     _TecnicoData(
       titulo: 'Técnico en Logística e Inventarios',
@@ -34,6 +36,7 @@ class _TecnicosPageState extends State<TecnicosPage> {
       icono: Icons.inventory_2_outlined,
       colores: [Color(0xFF087F8C), Color(0xFF14B8A6)],
       imagen: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1500&q=92',
+      detalle: ProgramaTecnico.logisticaInventarios,
     ),
     _TecnicoData(
       titulo: 'Técnico en Supervisión de Producción',
@@ -41,24 +44,9 @@ class _TecnicosPageState extends State<TecnicosPage> {
       icono: Icons.precision_manufacturing_outlined,
       colores: [Color(0xFF4F46A5), Color(0xFF7C3AED)],
       imagen: 'https://images.unsplash.com/photo-1567789884554-0b844b597180?auto=format&fit=crop&w=1500&q=92',
+      detalle: ProgramaTecnico.supervisionProduccion,
     ),
   ];
-
-  void _mostrarMensaje(String mensaje) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(mensaje),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: deepBlue,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
-  }
 
   void _abrirCalendario() {
     HapticFeedback.selectionClick();
@@ -131,34 +119,85 @@ class _TecnicosPageState extends State<TecnicosPage> {
         bottom: false,
         child: Stack(
           children: [
+            const FondoAppDifuminado(),
             Positioned.fill(
-              child: CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1100),
-                        child: _construirEncabezado(),
+              child: Column(
+                children: [
+                  LayoutBuilder(
+                    builder: (context, constraints) => SizedBox(
+                      width: double.infinity,
+                      child: _construirEncabezado(
+                        ResponsiveLayout.isCompactLandscape(
+                          constraints.maxWidth,
+                          MediaQuery.sizeOf(context).height,
+                        ),
                       ),
                     ),
                   ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 22, 16, 130),
-                    sliver: SliverToBoxAdapter(
-                      child: ResponsiveCardGrid(
-                        itemCount: tecnicos.length,
-                        itemBuilder: (context, index) =>
-                            _construirTarjeta(tecnicos[index]),
-                      ),
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final screenSize = MediaQuery.sizeOf(context);
+                        final compactLandscape =
+                            ResponsiveLayout.isCompactLandscape(
+                              screenSize.width,
+                              screenSize.height,
+                            );
+                        final horizontalPadding =
+                            constraints.maxWidth < 360 ? 12.0 : 18.0;
+                        final rowSpacing = compactLandscape ? 12.0 : 18.0;
+                        final verticalPadding = compactLandscape ? 10.0 : 18.0;
+                        final hinge = ResponsiveLayout.verticalHinge(context);
+                        final availableWidth =
+                            constraints.maxWidth - horizontalPadding * 2;
+                        final minimumThreeColumnWidth = compactLandscape
+                            ? 750.0
+                            : 1050.0;
+                        final columns = hinge != null
+                            ? 2
+                            : availableWidth >= minimumThreeColumnWidth
+                            ? 3
+                            : availableWidth >= 720
+                            ? 2
+                            : 1;
+                        final rows = (tecnicos.length / columns).ceil();
+                        final minimumCardHeight = columns == 1 ? 120.0 : 140.0;
+                        final availableCardHeight =
+                            (constraints.maxHeight -
+                                    verticalPadding * 2 -
+                                    rowSpacing * (rows - 1)) /
+                                rows;
+                        final cardHeight = availableCardHeight
+                            .clamp(minimumCardHeight, double.infinity)
+                            .toDouble();
+
+                        return SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          padding: EdgeInsets.fromLTRB(
+                            horizontalPadding,
+                            verticalPadding,
+                            horizontalPadding,
+                            verticalPadding,
+                          ),
+                          child: ResponsiveCardGrid(
+                            itemCount: tecnicos.length,
+                            maxWidth: double.infinity,
+                            cardHeight: cardHeight,
+                            maxCardHeight: cardHeight,
+                            spacing: rowSpacing,
+                            threeColumnMinWidth: minimumThreeColumnWidth,
+                            twoColumnMinWidth: 720,
+                            maxColumns: 3,
+                            itemBuilder: (context, index) =>
+                                _construirTarjeta(tecnicos[index]),
+                          ),
+                        );
+                      },
                     ),
                   ),
+                  _construirNavegacionInferior(),
                 ],
               ),
-            ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: _construirNavegacionInferior(),
             ),
           ],
         ),
@@ -166,10 +205,15 @@ class _TecnicosPageState extends State<TecnicosPage> {
     );
   }
 
-  Widget _construirEncabezado() {
+  Widget _construirEncabezado([bool compacto = false]) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(22, 18, 22, 24),
+      padding: EdgeInsets.fromLTRB(
+        compacto ? 18 : 22,
+        compacto ? 8 : 18,
+        compacto ? 18 : 22,
+        compacto ? 12 : 24,
+      ),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -184,30 +228,12 @@ class _TecnicosPageState extends State<TecnicosPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              AppBackButton(
-                onDarkBackground: true,
-                onPressed: () {
-                  Navigator.of(context).maybePop();
-                },
-              ),
-              const Spacer(),
-              GelPress(
-                child: IconButton(
-                  tooltip: 'Avisos',
-                  onPressed: _abrirAvisos,
-                  icon: const Icon(
-                    Icons.notifications_none_rounded,
-                    color: Colors.white,
-                    size: 26,
-                  ),
-                ),
-              ),
-            ],
+          AppBackButton(
+            onDarkBackground: true,
+            onPressed: () => Navigator.of(context).maybePop(),
           ),
           const Text(
-            'Hola, bienvenido',
+            'Técnicos',
             style: TextStyle(
               color: Colors.white,
               fontSize: 25,
@@ -220,31 +246,32 @@ class _TecnicosPageState extends State<TecnicosPage> {
             'Conoce nuestros técnicos y encuentra tu camino.',
             style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
           ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.engineering_outlined, color: Colors.white, size: 20),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Escuela de Ingeniería en Producción Industrial',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+          SizedBox(height: compacto ? 0 : 16),
+          if (!compacto)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.engineering_outlined, color: Colors.white, size: 20),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Escuela de Ingeniería en Producción Industrial',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -260,7 +287,11 @@ class _TecnicosPageState extends State<TecnicosPage> {
         child: InkWell(
           onTap: () {
             HapticFeedback.selectionClick();
-            _mostrarMensaje('Seleccionaste: ${tecnico.titulo}');
+            Navigator.of(context).push(
+              appPageRoute<void>(
+                builder: (_) => TecnicoDetallePage(programa: tecnico.detalle),
+              ),
+            );
           },
           borderRadius: BorderRadius.circular(radio),
           child: Container(
@@ -344,7 +375,7 @@ class _TecnicosPageState extends State<TecnicosPage> {
 
                   // Icono, título y descripción.
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 17, 47, 17),
+                    padding: const EdgeInsets.fromLTRB(16, 10, 47, 10),
                     child: Row(
                       children: [
                         Container(
@@ -380,7 +411,7 @@ class _TecnicosPageState extends State<TecnicosPage> {
                                   height: 1.18,
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               Text(
                                 tecnico.descripcion,
                                 maxLines: 3,
@@ -448,6 +479,7 @@ class _TecnicoData {
   final IconData icono;
   final List<Color> colores;
   final String imagen;
+  final ProgramaTecnico detalle;
 
   const _TecnicoData({
     required this.titulo,
@@ -455,5 +487,6 @@ class _TecnicoData {
     required this.icono,
     required this.colores,
     required this.imagen,
+    required this.detalle,
   });
 }

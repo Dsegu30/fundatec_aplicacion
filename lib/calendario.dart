@@ -12,6 +12,7 @@ import 'app_theme.dart';
 import 'navegacion_glass.dart';
 import 'notificaciones.dart';
 import 'perfil.dart';
+import 'responsive_layout.dart';
 
 const azulTec = Color(0xFF083D91);
 const azulBrillante = Color(0xFF2868ED);
@@ -477,6 +478,10 @@ class _CalendarioPageState extends State<CalendarioPage>
 
   @override
   Widget build(BuildContext context) {
+    final verticalHinge = ResponsiveLayout.verticalHinge(context);
+    final anchoMaximoContenido = ResponsiveLayout.contentMaxWidth(
+      MediaQuery.sizeOf(context).width,
+    );
     return ScrollConfiguration(
       behavior: const ScrollBehaviorInvisible(),
       child: Scaffold(
@@ -484,7 +489,7 @@ class _CalendarioPageState extends State<CalendarioPage>
         extendBody: true,
         body: Stack(
           children: [
-            const Positioned.fill(child: _FondoLiquidGlass()),
+            const FondoAppDifuminado(),
             SafeArea(
               bottom: false,
               child: _cargando
@@ -499,14 +504,15 @@ class _CalendarioPageState extends State<CalendarioPage>
                         // suficiente espacio horizontal para ambas.
                         // Los teléfonos, incluso en horizontal, conservan
                         // una única columna con desplazamiento vertical.
-                        final ladoALado = ancho >= 900;
+                        final ladoALado =
+                            ancho >= 840 || verticalHinge != null;
 
                         return Column(
                           children: [
                             Center(
                               child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 1400,
+                                constraints: BoxConstraints(
+                                  maxWidth: anchoMaximoContenido,
                                 ),
                                 child: _construirAppBar(),
                               ),
@@ -515,17 +521,26 @@ class _CalendarioPageState extends State<CalendarioPage>
                               child: ladoALado
                                   ? Center(
                                       child: ConstrainedBox(
-                                        constraints: const BoxConstraints(
-                                          maxWidth: 1400,
+                                        constraints: BoxConstraints(
+                                          maxWidth: anchoMaximoContenido,
                                         ),
                                         child: LayoutBuilder(
                                           builder: (context, interno) {
                                             final disponible = interno.maxWidth;
 
+                                            final espacioBisagra =
+                                                verticalHinge == null
+                                                ? 0.0
+                                                : verticalHinge.bounds.width +
+                                                      16.0;
                                             final anchoCalendario =
-                                                (disponible * .44)
-                                                    .clamp(320.0, 520.0)
-                                                    .toDouble();
+                                                verticalHinge != null
+                                                ? (disponible -
+                                                          espacioBisagra) /
+                                                      2
+                                                : (disponible * .44)
+                                                      .clamp(320.0, 520.0)
+                                                      .toDouble();
 
                                             return Row(
                                               crossAxisAlignment:
@@ -544,6 +559,10 @@ class _CalendarioPageState extends State<CalendarioPage>
                                                         _construirCalendario(),
                                                   ),
                                                 ),
+                                                if (espacioBisagra > 0)
+                                                  SizedBox(
+                                                    width: espacioBisagra,
+                                                  ),
                                                 Expanded(
                                                   child: _construirAgenda(),
                                                 ),
@@ -935,7 +954,7 @@ class _CalendarioPageState extends State<CalendarioPage>
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.only(bottom: 20),
                       itemCount: eventos.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
                       itemBuilder: (_, index) => _tarjetaEvento(eventos[index]),
                     ),
             ),
@@ -1333,64 +1352,6 @@ class _Leyenda extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _FondoLiquidGlass extends StatelessWidget {
-  const _FondoLiquidGlass();
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return Stack(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: dark
-                  ? const [
-                      Color(0xFF101923),
-                      Color(0xFF152231),
-                      Color(0xFF1B2B3B),
-                    ]
-                  : const [
-                      Color(0xFFF8FAFF),
-                      Color(0xFFEDF4FF),
-                      Color(0xFFF7F8FD),
-                    ],
-            ),
-          ),
-        ),
-        Positioned(
-          top: -100,
-          right: -90,
-          child: _halo(270, azulClaro.withValues(alpha: .19)),
-        ),
-        Positioned(
-          top: 310,
-          left: -130,
-          child: _halo(260, const Color(0xFF8DABFF).withValues(alpha: .13)),
-        ),
-        Positioned(
-          bottom: -100,
-          right: -80,
-          child: _halo(300, const Color(0xFF9DCFFF).withValues(alpha: .17)),
-        ),
-      ],
-    );
-  }
-
-  Widget _halo(double size, Color color) {
-    return ImageFiltered(
-      imageFilter: ImageFilter.blur(sigmaX: 45, sigmaY: 45),
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      ),
     );
   }
 }
