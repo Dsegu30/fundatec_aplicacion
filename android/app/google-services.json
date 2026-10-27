@@ -9,8 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:945528616182:android:85604dcfd9bde82ad1e8d7",
         "android_client_info": {
-          "package_name": "com.example.fundatec"
-        }
+"package_name": "com.example.fundatec"        }
       },
       "oauth_client": [],
       "api_key": [

@@ -8,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'dart:async';
+import 'package:app_links/app_links.dart';
 
 import 'app_theme.dart';
 import 'calendario.dart';
@@ -52,6 +54,15 @@ class TecApp extends StatefulWidget {
 
 class _TecAppState extends State<TecApp> {
   static const String _themeModeKey = 'app_theme_mode';
+  final AppLinks _appLinks = AppLinks();
+StreamSubscription<Uri>? _enlacesSubscription;
+_iniciarEscuchaEnlaces();
+
+@override
+void dispose() {
+  _enlacesSubscription?.cancel();
+  super.dispose();
+}
 
   ThemeMode _themeMode = ThemeMode.light;
   bool _mostrarRegistro = true;
@@ -125,6 +136,74 @@ class _TecAppState extends State<TecApp> {
         );
     }
   }
+  Future<void> _iniciarEscuchaEnlaces() async {
+  _enlacesSubscription = _appLinks.uriLinkStream.listen(
+    (uri) {
+      _procesarEnlaceVerificacion(uri);
+    },
+    onError: (Object error) {
+      debugPrint('Error al recibir el enlace: $error');
+    },
+  );
+
+  try {
+    final enlaceInicial = await _appLinks.getInitialLink();
+
+    if (enlaceInicial != null) {
+      await _procesarEnlaceVerificacion(enlaceInicial);
+    }
+  } catch (error) {
+    debugPrint('Error al recuperar el enlace inicial: $error');
+  }
+}
+
+Future<void> _procesarEnlaceVerificacion(Uri uri) async {
+  try {
+    var enlace = uri;
+
+    // Algunos enlaces pueden contener el enlace de acción
+    // dentro de los parámetros continueUrl o link.
+    for (var i = 0; i < 2; i++) {
+      final anidado =
+          enlace.queryParameters['continueUrl'] ??
+          enlace.queryParameters['link'];
+
+      if (anidado == null || anidado.isEmpty) break;
+
+      final siguiente = Uri.tryParse(anidado);
+      if (siguiente == null) break;
+
+      enlace = siguiente;
+    }
+
+    final modo = enlace.queryParameters['mode'];
+    final codigo = enlace.queryParameters['oobCode'];
+
+    if (modo != 'verifyEmail' ||
+        codigo == null ||
+        codigo.isEmpty) {
+      return;
+    }
+
+    await FirebaseAuth.instance.applyActionCode(codigo);
+
+    await FirebaseAuth.instance.signOut();
+
+    if (!mounted) return;
+
+    setState(() {
+      _mostrarRegistro = true;
+    });
+
+    debugPrint('Correo verificado correctamente.');
+  } on FirebaseAuthException catch (error) {
+    debugPrint(
+      'No se pudo verificar el correo: ${error.code}',
+    );
+  } catch (error) {
+    debugPrint('Error procesando la verificación: $error');
+  }
+}
 
   Future<void> _cerrarSesion() async {
     final onLogout = widget.onLogout;
