@@ -218,11 +218,13 @@ class _PosgradoDetallePageState extends State<PosgradoDetallePage>
   }
 
   Future<void> _abrirWhatsApp({required bool agendarCita}) async {
+    const tipo = 'programa';
+    final nombre = widget.titulo;
     final mensaje = agendarCita
         ? 'Hola, quisiera agendar una cita con la Coordinación de Posgrados '
-              'para recibir más información sobre el programa ${widget.titulo}.'
-        : 'Hola, quisiera hacer una consulta sobre el programa '
-              '${widget.titulo}. ¿Podrían brindarme más información?';
+              'para recibir más información sobre el $tipo "$nombre".'
+        : 'Hola, quisiera hacer una consulta sobre el $tipo '
+              '"$nombre". ¿Podrían brindarme más información?';
     final uri = Uri.https('api.whatsapp.com', '/send', {
       'phone': _whatsappPosgrados,
       'text': mensaje,
@@ -768,7 +770,7 @@ class _PosgradoDetallePageState extends State<PosgradoDetallePage>
                   ),
                   const SizedBox(height: 11),
                   _botonAccionGlass(
-                    texto: 'Agendar una cita con coordinación de Posgrados',
+                    texto: 'Agendar una cita con coordinación',
                     icono: Icons.calendar_month_rounded,
                     principal: false,
                     onTap: _consultarCita,

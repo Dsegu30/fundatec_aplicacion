@@ -100,16 +100,22 @@ class _TecnicoDetallePageState extends State<TecnicoDetallePage>
     }
   }
 
-  Future<void> _abrirWhatsApp({required bool agendarCita}) => _abrirEnlace(
-    Uri.https('api.whatsapp.com', '/send', {
-      'phone': info.telefonoWhatsApp,
-      'text': agendarCita
-          ? 'Hola, quisiera agendar una cita con ${info.coordinacion} '
-                'para recibir más información sobre el programa ${info.titulo}.'
-          : 'Hola, quisiera hacer una consulta sobre el programa ${info.titulo}. '
-                '¿Podrían brindarme más información?',
-    }),
-  );
+  Future<void> _abrirWhatsApp({required bool agendarCita}) {
+    const tipo = 'programa';
+    final nombre = info.titulo;
+    final mensaje = agendarCita
+        ? 'Hola, quisiera agendar una cita con ${info.coordinacion} '
+              'para recibir más información sobre el $tipo "$nombre".'
+        : 'Hola, quisiera hacer una consulta sobre el $tipo '
+              '"$nombre". ¿Podrían brindarme más información?';
+
+    return _abrirEnlace(
+      Uri.https('api.whatsapp.com', '/send', {
+        'phone': info.telefonoWhatsApp,
+        'text': mensaje,
+      }),
+    );
+  }
 
   void _abrirPerfil() {
     HapticFeedback.selectionClick();
@@ -170,9 +176,7 @@ class _TecnicoDetallePageState extends State<TecnicoDetallePage>
     final compactLandscape =
         screenSize.width > screenSize.height && screenSize.height < 560;
     final horizontalInset = screenSize.width < 360 ? 14.0 : 18.0;
-    final maxContentWidth = ResponsiveLayout.contentMaxWidth(
-      screenSize.width,
-    );
+    final maxContentWidth = ResponsiveLayout.contentMaxWidth(screenSize.width);
 
     return DisplayFeatureSubScreen(
       child: Scaffold(
@@ -1062,7 +1066,7 @@ class _TecnicoDetallePageState extends State<TecnicoDetallePage>
                   ),
                   const SizedBox(height: 11),
                   _botonAccionGlass(
-                    texto: 'Agendar una cita con coordinacion',
+                    texto: 'Agendar una cita con coordinación',
                     icono: Icons.calendar_month_rounded,
                     principal: false,
                     onTap: () => _abrirWhatsApp(agendarCita: true),

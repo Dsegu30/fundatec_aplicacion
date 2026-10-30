@@ -30,7 +30,6 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  await FirebaseAuth.instance.authStateChanges().first;
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -56,7 +55,6 @@ class _TecAppState extends State<TecApp> {
   static const String _themeModeKey = 'app_theme_mode';
   final AppLinks _appLinks = AppLinks();
 StreamSubscription<Uri>? _enlacesSubscription;
-_iniciarEscuchaEnlaces();
 
 @override
 void dispose() {
@@ -77,6 +75,7 @@ void dispose() {
       _mostrarRegistro = true;
     }
     _loadThemeMode();
+    _iniciarEscuchaEnlaces();
   }
 
   Future<void> _loadThemeMode() async {
@@ -495,50 +494,30 @@ class _TecHomeScreenState extends State<TecHomeScreen>
     });
   }
 
-  void _openTecnicos() {
+  /// Helper que centraliza la navegación hacia páginas externas.
+  /// Aplica feedback háptico, quita el foco del teclado y push de ruta.
+  Future<void> _navigateToPage(WidgetBuilder builder) async {
+    if (!mounted) return;
+
     HapticFeedback.selectionClick();
     FocusScope.of(context).unfocus();
+    _searchController.clear();
 
-    Navigator.of(context)
-        .push(appPageRoute<void>(builder: (context) => const TecnicosPage()));
+    await Navigator.of(context).push(appPageRoute<void>(builder: builder));
   }
 
-  void _openLicenciatura() {
-    HapticFeedback.selectionClick();
-    FocusScope.of(context).unfocus();
+  void _openTecnicos() => _navigateToPage((context) => const TecnicosPage());
 
-    Navigator.of(
-      context,
-    ).push(appPageRoute<void>(builder: (context) => const LicenciaturaPage()));
-  }
+  void _openLicenciatura() =>
+      _navigateToPage((context) => const LicenciaturaPage());
 
-  void _openPosgrados() {
-    HapticFeedback.selectionClick();
-    FocusScope.of(context).unfocus();
+  void _openPosgrados() => _navigateToPage((context) => const PosgradosPage());
 
-    Navigator.of(context)
-        .push(appPageRoute<void>(builder: (context) => const PosgradosPage()));
-  }
+  void _openCursosLibres() =>
+      _navigateToPage((context) => const CursosLibresCatalogoPage());
 
-  void _openCursosLibres() {
-    HapticFeedback.selectionClick();
-    FocusScope.of(context).unfocus();
-
-    Navigator.of(
-      context,
-    ).push(appPageRoute<void>(builder: (context) => const CursosLibresPage()));
-  }
-
-  void _openEspecialidades() {
-    HapticFeedback.selectionClick();
-    FocusScope.of(context).unfocus();
-
-    Navigator.of(context).push(
-      appPageRoute<void>(
-        builder: (context) => const EspecialidadesIndustrialesPage(),
-      ),
-    );
-  }
+  void _openEspecialidades() =>
+      _navigateToPage((context) => const EspecialidadesIndustrialesPage());
 
   void _goHome() {
     HapticFeedback.selectionClick();
@@ -1722,6 +1701,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
         title: 'Técnico en\nCalidad',
         description: 'Desarrolla tus habilidades en control, mejora y aseguramiento de la calidad industrial.',
         imageUrl: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1600&q=95',
+        onTap: _openTecnicos,
       ),
       _MainCardData(
         gradientColors: [const Color(0xFF0D9488), const Color(0xFF14B8A6)],
@@ -1737,6 +1717,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
         title: 'Posgrados\nIndustrial',
         description: 'Lleva tu conocimiento al siguiente nivel con programas de posgrado especializados.',
         imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1600&q=95',
+        onTap: _openPosgrados,
       ),
     ];
 
@@ -1880,19 +1861,12 @@ class _TecHomeScreenState extends State<TecHomeScreen>
               onTap: () {
                 HapticFeedback.selectionClick();
 
-                if (data.onTap != null) {
-                  data.onTap!();
-                } else if (data.title.startsWith('Cursos Libres')) {
-                  _openCursosLibres();
-                } else if (data.title.startsWith('Técnico')) {
-                  _openTecnicos();
-                } else if (data.title.startsWith('Licenciatura')) {
-                  _openLicenciatura();
-                } else if (data.title.startsWith('Posgrados')) {
-                  _openPosgrados();
-                } else {
-                  _showSnackbar('Abriendo ${data.title.replaceAll('\n', ' ')}');
-                }
+                data.onTap?.call();
+
+
+
+
+
               },
               borderRadius: cardRadius,
               child: Container(

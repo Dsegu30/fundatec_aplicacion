@@ -31,7 +31,6 @@ const List<String> _tiposUsuario = [
 ];
 
 const Color _fondoOscuro = Color(0xFF071426);
-const Color _azulProfundo = Color(0xFF12345A);
 const Color _azulBrillante = Color(0xFF47C9F5);
 const Color _azulHielo = Color(0xFF9AF3FF);
 const Color _textoOscuro = Color(0xFF153653);

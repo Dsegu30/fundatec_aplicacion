@@ -28,9 +28,7 @@ class _LicenciaturaPageState extends State<LicenciaturaPage>
   static const String imagenPrograma =
       'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1600&q=85';
 
-  static const String telefonoSecretaria = '2550-9202';
   static const String whatsappSecretaria = '50625509202';
-  static const String correoSecretaria = 'asanabria@tec.ac.cr';
 
   int selectedIndex = 0;
 
@@ -148,12 +146,15 @@ class _LicenciaturaPageState extends State<LicenciaturaPage>
     }
   }
 
-  Future<void> _abrirWhatsAppSecretaria() async {
-    final uri = Uri.https('wa.me', '/$whatsappSecretaria', {
-      'text':
-          'Hola, quisiera información sobre la Licenciatura en Ingeniería '
-          'en Producción Industrial.',
-    });
+  Future<void> _abrirWhatsApp({required bool agendarCita}) async {
+    const tipo = 'programa';
+    const nombre = 'Licenciatura en Ingeniería en Producción Industrial';
+    final mensaje = agendarCita
+        ? 'Hola, quisiera agendar una cita con la Secretaría de la Licenciatura '
+              'para recibir más información sobre el $tipo "$nombre".'
+        : 'Hola, quisiera hacer una consulta sobre el $tipo '
+              '"$nombre". ¿Podrían brindarme más información?';
+    final uri = Uri.https('wa.me', '/$whatsappSecretaria', {'text': mensaje});
 
     try {
       final abierto = await launchUrl(
@@ -171,11 +172,12 @@ class _LicenciaturaPageState extends State<LicenciaturaPage>
     }
   }
 
-  void _agendarCita() {
-    _mostrarMensaje(
-      'Consultá con Secretaría cómo solicitar una cita: '
-      '$telefonoSecretaria o $correoSecretaria.',
-    );
+  void _contactarPorWhatsApp() {
+    _abrirWhatsApp(agendarCita: false);
+  }
+
+  void _consultarCita() {
+    _abrirWhatsApp(agendarCita: true);
   }
 
   @override
@@ -187,9 +189,7 @@ class _LicenciaturaPageState extends State<LicenciaturaPage>
 
     final horizontalInset = screenSize.width < 360 ? 14.0 : 18.0;
 
-    final maxContentWidth = ResponsiveLayout.contentMaxWidth(
-      screenSize.width,
-    );
+    final maxContentWidth = ResponsiveLayout.contentMaxWidth(screenSize.width);
 
     return DisplayFeatureSubScreen(
       child: Scaffold(
@@ -1153,17 +1153,17 @@ class _LicenciaturaPageState extends State<LicenciaturaPage>
                   ),
                   const SizedBox(height: 21),
                   _botonAccionGlass(
-                    texto: 'Contactar por WhatsApp',
+                    texto: 'Hacer una consulta por WhatsApp',
                     icono: Icons.chat_rounded,
                     principal: true,
-                    onTap: _abrirWhatsAppSecretaria,
+                    onTap: _contactarPorWhatsApp,
                   ),
                   const SizedBox(height: 11),
                   _botonAccionGlass(
-                    texto: 'Consultar cómo solicitar una cita',
+                    texto: 'Agendar una cita con coordinación',
                     icono: Icons.calendar_month_rounded,
                     principal: false,
-                    onTap: _agendarCita,
+                    onTap: _consultarCita,
                   ),
                 ],
               ),

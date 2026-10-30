@@ -117,7 +117,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(const MaterialApp(home: CursosLibresPage()));
+      await tester.pumpWidget(const MaterialApp(home: CursosLibresCatalogoPage()));
       await tester.pump(const Duration(milliseconds: 700));
       expectNoLayoutException(tester);
     });
@@ -339,7 +339,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetDisplayFeatures);
 
-    await tester.pumpWidget(const MaterialApp(home: CursosLibresPage()));
+    await tester.pumpWidget(const MaterialApp(home: CursosLibresCatalogoPage()));
     await tester.pump(const Duration(milliseconds: 700));
 
     final excel = tester.getRect(
