@@ -1,5 +1,7 @@
 import 'dart:ui' as ui;
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'app_theme.dart';
@@ -54,93 +56,28 @@ class PerfilPage extends StatelessWidget {
                             const SizedBox(height: 34),
                             _encabezado(context),
                             const SizedBox(height: 42),
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                final hinge =
-                                    ResponsiveLayout.verticalHinge(context);
-                                const opcionesCuenta = [
-                                  _OpcionPerfil(
-                                    icono: Icons.badge_outlined,
-                                    titulo: 'Información personal',
-                                    descripcion: 'Mis datos',
-                                    color: azulTec,
-                                  ),
-                                  _OpcionPerfil(
-                                    icono: Icons.shield_outlined,
-                                    titulo: 'Seguridad de la cuenta',
-                                    descripcion: 'Acceso y seguridad',
-                                    color: azulTec,
-                                  ),
-                                  _OpcionPerfil(
-                                    icono: Icons.school_outlined,
-                                    titulo: 'Mi carrera',
-                                    descripcion: 'Información académica',
-                                    color: azulTec,
-                                  ),
-                                ];
-                                const opcionesAdicionales = [
-                                  _OpcionPerfil(
-                                    icono: Icons.folder_open_rounded,
-                                    titulo: 'Mis documentos',
-                                    descripcion: 'Documentos académicos',
-                                    color: azulTec,
-                                  ),
-                                  _OpcionPerfil(
-                                    icono: Icons.tune_rounded,
-                                    titulo: 'Configuración',
-                                    descripcion:
-                                        'Preferencias de la aplicación',
-                                    color: azulTec,
-                                  ),
-                                  _OpcionPerfil(
-                                    icono: Icons.help_outline_rounded,
-                                    titulo: 'Ayuda',
-                                    descripcion: 'Centro de ayuda',
-                                    color: azulTec,
-                                  ),
-                                ];
-
-                                if (constraints.maxWidth >= 840 ||
-                                    hinge != null) {
-                                  return Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        child: _tarjetaOpciones(
-                                          context,
-                                          opciones: opcionesCuenta,
-                                        ),
-                                      ),
-                                      SizedBox(
-                                        width: hinge == null
-                                            ? 20
-                                            : hinge.bounds.width + 16,
-                                      ),
-                                      Expanded(
-                                        child: _tarjetaOpciones(
-                                          context,
-                                          opciones: opcionesAdicionales,
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                }
-
-                                return Column(
-                                  children: [
-                                    _tarjetaOpciones(
-                                      context,
-                                      opciones: opcionesCuenta,
-                                    ),
-                                    const SizedBox(height: 24),
-                                    _tarjetaOpciones(
-                                      context,
-                                      opciones: opcionesAdicionales,
-                                    ),
-                                  ],
-                                );
-                              },
+                            _tarjetaOpciones(
+                              context,
+                              opciones: const [
+                                _OpcionPerfil(
+                                  icono: Icons.badge_outlined,
+                                  titulo: 'Información personal',
+                                  descripcion: 'Mis datos',
+                                  color: azulTec,
+                                ),
+                                _OpcionPerfil(
+                                  icono: Icons.shield_outlined,
+                                  titulo: 'Seguridad de la cuenta',
+                                  descripcion: 'Acceso y seguridad',
+                                  color: azulTec,
+                                ),
+                                _OpcionPerfil(
+                                  icono: Icons.tune_rounded,
+                                  titulo: 'Configuración',
+                                  descripcion: 'Preferencias de la aplicación',
+                                  color: azulTec,
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 24),
                             _botonCerrarSesion(context, onLogout: onLogout),
@@ -229,8 +166,79 @@ class PerfilPage extends StatelessWidget {
   }
 
   Widget _encabezado(BuildContext context) {
+    User? usuario;
+    try {
+      usuario = FirebaseAuth.instance.currentUser;
+    } catch (error) {
+      debugPrint(
+        'Firebase Auth no está disponible para cargar el perfil: $error',
+      );
+      return _construirEncabezado(context);
+    }
+
+    if (usuario == null) return _construirEncabezado(context);
+
+    try {
+      final perfilStream = FirebaseFirestore.instance
+          .collection('usuarios')
+          .doc(usuario.uid)
+          .snapshots();
+      return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+        stream: perfilStream,
+        builder: (context, snapshot) => _construirEncabezado(
+          context,
+          usuario: usuario,
+          datos: snapshot.data?.data(),
+          cargando: snapshot.connectionState == ConnectionState.waiting,
+          error: snapshot.hasError,
+          perfilNoEncontrado:
+              snapshot.hasData && !(snapshot.data?.exists ?? false),
+        ),
+      );
+    } catch (error) {
+      debugPrint('No se pudo abrir el perfil de Firestore: $error');
+      return _construirEncabezado(context, usuario: usuario);
+    }
+  }
+
+  Widget _construirEncabezado(
+    BuildContext context, {
+    User? usuario,
+    Map<String, dynamic>? datos,
+    bool cargando = false,
+    bool error = false,
+    bool perfilNoEncontrado = false,
+  }) {
     final theme = Theme.of(context);
     final dark = theme.brightness == Brightness.dark;
+    final nombreGuardado = _valorTexto(datos, 'nombre');
+    final nombre = nombreGuardado?.isNotEmpty == true
+        ? nombreGuardado!
+        : usuario?.displayName?.trim() ?? '';
+    final correo = usuario?.email ?? _valorTexto(datos, 'correo');
+    final tipo = _valorTexto(datos, 'tipo');
+    final correoVerificado =
+        usuario?.emailVerified ?? datos?['correoVerificado'] == true;
+    final detalles = <String>[
+      if (tipo != null && tipo.isNotEmpty) tipo,
+      if (correo != null && correo.isNotEmpty) correo,
+    ];
+    final textoDetalles = detalles.isEmpty
+        ? 'Inicia sesión para ver tu información'
+        : detalles.join(' · ');
+    final textoEstado = usuario == null
+        ? 'Sin sesión'
+        : correoVerificado
+        ? 'Correo verificado'
+        : 'Correo sin verificar';
+    final iniciales = nombre
+        .split(RegExp(r'\s+'))
+        .where((palabra) => palabra.isNotEmpty)
+        .take(2)
+        .map((palabra) => palabra.substring(0, 1))
+        .join()
+        .toUpperCase();
+
     return Column(
       children: [
         Container(
@@ -263,15 +271,30 @@ class PerfilPage extends StatelessWidget {
               ),
             ],
           ),
-          child: Icon(
-            Icons.person_rounded,
-            color: dark ? const Color(0xFF9FB8D4) : const Color(0xFF7795BE),
-            size: 72,
-          ),
+          child: iniciales.isEmpty
+              ? Icon(
+                  Icons.person_rounded,
+                  color: dark
+                      ? const Color(0xFF9FB8D4)
+                      : const Color(0xFF7795BE),
+                  size: 72,
+                )
+              : Center(
+                  child: Text(
+                    iniciales,
+                    style: TextStyle(
+                      color: dark
+                          ? const Color(0xFF9FB8D4)
+                          : const Color(0xFF7795BE),
+                      fontSize: 38,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
         ),
         const SizedBox(height: 20),
         Text(
-          'Mi cuenta',
+          nombre.isEmpty ? 'Mi cuenta' : nombre,
           textAlign: TextAlign.center,
           style: TextStyle(
             color: theme.colorScheme.onSurface,
@@ -282,7 +305,9 @@ class PerfilPage extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Estudiante · Tecnológico de Costa Rica',
+          textoDetalles,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
           style: TextStyle(
             color: theme.colorScheme.onSurfaceVariant,
@@ -290,6 +315,21 @@ class PerfilPage extends StatelessWidget {
             height: 1.4,
           ),
         ),
+        if (error || perfilNoEncontrado || (cargando && datos == null)) ...[
+          const SizedBox(height: 6),
+          Text(
+            error
+                ? 'No se pudo cargar la información del perfil.'
+                : perfilNoEncontrado
+                ? 'No se encontró el perfil de esta cuenta en Firestore.'
+                : 'Cargando información del perfil…',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontSize: 12,
+            ),
+          ),
+        ],
         const SizedBox(height: 15),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
@@ -304,13 +344,15 @@ class PerfilPage extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  Icons.verified_user_rounded,
+                  correoVerificado
+                      ? Icons.verified_user_rounded
+                      : Icons.mark_email_unread_outlined,
                   size: 15,
                   color: theme.colorScheme.primary,
                 ),
-                SizedBox(width: 7),
+                const SizedBox(width: 7),
                 Text(
-                  'Perfil académico',
+                  textoEstado,
                   style: TextStyle(
                     color: theme.colorScheme.primary,
                     fontSize: 12,
@@ -319,6 +361,47 @@ class PerfilPage extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String? _valorTexto(Map<String, dynamic>? datos, String clave) {
+    final valor = datos?[clave];
+    return valor is String ? valor.trim() : null;
+  }
+
+  Widget _datoPersonal(
+    BuildContext context, {
+    required IconData icono,
+    required String etiqueta,
+    required String valor,
+  }) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icono, size: 18, color: theme.colorScheme.primary),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                etiqueta,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                valor,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -359,6 +442,7 @@ class PerfilPage extends StatelessWidget {
     final descripcion = opcion.titulo == 'Configuración'
         ? 'Modo ${_themeModeLabel(themeMode)}'
         : opcion.descripcion;
+
     return GelPress(
       enabled: opcion.titulo != 'Configuración',
       child: Material(
@@ -370,18 +454,19 @@ class PerfilPage extends StatelessWidget {
           onTap: opcion.titulo == 'Configuración'
               ? null
               : () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        '${opcion.titulo}: función pendiente de configurar.',
-                      ),
-                      behavior: SnackBarBehavior.floating,
-                      backgroundColor: azulTec,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                  );
+                  switch (opcion.titulo) {
+                    case 'Información personal':
+                      _editarInformacionPersonal(context);
+                      break;
+                    case 'Seguridad de la cuenta':
+                      _restablecerContrasena(context);
+                      break;
+                    default:
+                      _mostrarMensaje(
+                        context,
+                        '${opcion.titulo}: información no disponible.',
+                      );
+                  }
                 },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 12),
@@ -470,6 +555,298 @@ class PerfilPage extends StatelessWidget {
     );
   }
 
+  Future<void> _editarInformacionPersonal(BuildContext context) async {
+    User? usuario;
+    try {
+      usuario = FirebaseAuth.instance.currentUser;
+    } catch (error) {
+      debugPrint(
+        'Firebase Auth no está disponible para editar el perfil: $error',
+      );
+      _mostrarMensaje(context, 'Firebase no está disponible en este momento.');
+      return;
+    }
+
+    if (usuario == null) {
+      _mostrarMensaje(context, 'Inicia sesión para editar tus datos.');
+      return;
+    }
+
+    final nombreController = TextEditingController();
+    final telefonoController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    try {
+      final referencia = FirebaseFirestore.instance
+          .collection('usuarios')
+          .doc(usuario.uid);
+      final documento = await referencia.get();
+      if (!context.mounted) return;
+
+      if (!documento.exists) {
+        _mostrarMensaje(
+          context,
+          'No se encontró el perfil de esta cuenta en Firestore.',
+        );
+        return;
+      }
+
+      final datos = documento.data() ?? <String, dynamic>{};
+      nombreController.text =
+          _valorTexto(datos, 'nombre') ?? usuario.displayName ?? '';
+      final telefonoActual = _valorTexto(datos, 'telefono');
+      telefonoController.text = telefonoActual ?? '';
+      final correoActual = usuario.email ?? _valorTexto(datos, 'correo');
+      final tipoCuenta = _valorTexto(datos, 'tipo');
+      final correoVerificado = usuario.emailVerified;
+
+      final cambios = await showDialog<Map<String, String>>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Información personal'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Theme.of(dialogContext)
+                        .colorScheme
+                        .surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Theme.of(dialogContext).colorScheme.outlineVariant,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Cuenta activa',
+                        style: Theme.of(dialogContext).textTheme.labelLarge
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 10),
+                      _datoPersonal(
+                        dialogContext,
+                        icono: Icons.person_outline_rounded,
+                        etiqueta: 'Nombre',
+                        valor: nombreController.text.isEmpty
+                            ? 'No registrado'
+                            : nombreController.text,
+                      ),
+                      const SizedBox(height: 10),
+                      _datoPersonal(
+                        dialogContext,
+                        icono: Icons.email_outlined,
+                        etiqueta: 'Correo',
+                        valor: correoActual ?? 'No disponible',
+                      ),
+                      const SizedBox(height: 10),
+                      _datoPersonal(
+                        dialogContext,
+                        icono: Icons.category_outlined,
+                        etiqueta: 'Tipo de cuenta',
+                        valor: tipoCuenta ?? 'No especificado',
+                      ),
+                      const SizedBox(height: 10),
+                      _datoPersonal(
+                        dialogContext,
+                        icono: Icons.phone_outlined,
+                        etiqueta: 'Teléfono',
+                        valor: telefonoActual?.isNotEmpty == true
+                            ? telefonoActual!
+                            : 'No registrado',
+                      ),
+                      const SizedBox(height: 10),
+                      _datoPersonal(
+                        dialogContext,
+                        icono: correoVerificado
+                            ? Icons.verified_user_outlined
+                            : Icons.mark_email_unread_outlined,
+                        etiqueta: 'Verificación del correo',
+                        valor: correoVerificado ? 'Verificado' : 'Pendiente',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Editar información',
+                    style: Theme.of(dialogContext).textTheme.labelLarge
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: nombreController,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: const InputDecoration(
+                          labelText: 'Nombre completo',
+                          prefixIcon: Icon(Icons.badge_outlined),
+                        ),
+                        validator: (value) =>
+                            value == null || value.trim().isEmpty
+                            ? 'Escribe tu nombre.'
+                            : value.trim().length > 100
+                            ? 'El nombre no puede superar 100 caracteres.'
+                            : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: telefonoController,
+                        keyboardType: TextInputType.phone,
+                        decoration: const InputDecoration(
+                          labelText: 'Teléfono (opcional)',
+                          prefixIcon: Icon(Icons.phone_outlined),
+                        ),
+                        validator: (value) {
+                          final telefono = value?.trim() ?? '';
+                          if (telefono.isNotEmpty &&
+                              !RegExp(r'^\+?[0-9\s()-]{8,20}$')
+                                  .hasMatch(telefono)) {
+                            return 'Revisa el formato del teléfono.';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (!(formKey.currentState?.validate() ?? false)) return;
+                Navigator.pop(dialogContext, {
+                  'nombre': nombreController.text.trim(),
+                  'telefono': telefonoController.text.trim(),
+                });
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
+      );
+
+      if (cambios == null || !context.mounted) return;
+
+      await referencia.update(cambios);
+      try {
+        await usuario.updateDisplayName(cambios['nombre']);
+      } catch (error) {
+        debugPrint('No se pudo sincronizar el nombre de Firebase Auth: $error');
+        if (!context.mounted) return;
+        _mostrarMensaje(
+          context,
+          'Los datos se guardaron, pero no se pudo sincronizar el nombre de la cuenta.',
+        );
+        return;
+      }
+
+      if (!context.mounted) return;
+      _mostrarMensaje(context, 'Información personal actualizada.');
+    } on FirebaseException catch (error) {
+      debugPrint('No se pudo actualizar el perfil: ${error.code}');
+      _mostrarMensaje(
+        context,
+        'No se pudieron guardar tus datos. Inténtalo de nuevo.',
+      );
+    } catch (error) {
+      debugPrint('Error al editar el perfil: $error');
+      _mostrarMensaje(context, 'Ocurrió un error al editar tus datos.');
+    } finally {
+      nombreController.dispose();
+      telefonoController.dispose();
+    }
+  }
+
+  Future<void> _restablecerContrasena(BuildContext context) async {
+    User? usuario;
+    try {
+      usuario = FirebaseAuth.instance.currentUser;
+    } catch (error) {
+      debugPrint(
+        'Firebase Auth no está disponible para restablecer la contraseña: $error',
+      );
+      _mostrarMensaje(context, 'Firebase no está disponible en este momento.');
+      return;
+    }
+
+    final correo = usuario?.email;
+    if (correo == null || correo.isEmpty) {
+      _mostrarMensaje(context, 'Esta cuenta no tiene un correo asociado.');
+      return;
+    }
+
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Restablecer contraseña'),
+        content: Text('Enviaremos un enlace de recuperación a $correo.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Enviar enlace'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true || !context.mounted) return;
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: correo);
+      if (!context.mounted) return;
+      _mostrarMensaje(context, 'Enlace de recuperación enviado a $correo.');
+    } on FirebaseAuthException catch (error) {
+      debugPrint('No se pudo enviar el restablecimiento: ${error.code}');
+      final mensaje = switch (error.code) {
+        'operation-not-allowed' || 'auth/operation-not-allowed' => 'Firebase aún no habilita el restablecimiento por correo. Activa Email/Password en Authentication.',
+        'invalid-email' || 'auth/invalid-email' =>
+          'La cuenta no tiene un correo válido para recuperar la contraseña.',
+        'too-many-requests' || 'auth/too-many-requests' => 'Se hicieron muchas solicitudes. Espera un momento e inténtalo otra vez.',
+        'network-request-failed' || 'auth/network-request-failed' =>
+          'No hay conexión. Revisa internet e inténtalo de nuevo.',
+        _ => 'No se pudo enviar el enlace. Inténtalo de nuevo.',
+      };
+      _mostrarMensaje(context, mensaje);
+    } catch (error) {
+      debugPrint('Error al restablecer la contraseña: $error');
+      _mostrarMensaje(context, 'Ocurrió un error al solicitar el enlace.');
+    }
+  }
+
+  void _mostrarMensaje(BuildContext context, String mensaje) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensaje),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: azulTec,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
   String _themeModeLabel(ThemeMode mode) {
     return switch (mode) {
       ThemeMode.light => 'Claro',
@@ -510,7 +887,11 @@ class PerfilPage extends StatelessWidget {
                       onPressed: () async {
                         Navigator.pop(dialogContext);
                         try {
-                          await onLogout?.call();
+                          if (onLogout != null) {
+                            await onLogout();
+                          } else {
+                            await FirebaseAuth.instance.signOut();
+                          }
                         } catch (error) {
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(

@@ -13,31 +13,33 @@ service cloud.firestore {
           'Empresa',
           'Egresado'
         ]
+        && request.resource.data.correoVerificado is bool
         && request.resource.data.keys().hasOnly([
           'uid',
+          'nombre',
           'correo',
           'tipo',
-          'fechaRegistro'
-        ]);
+          'fechaRegistro',
+          'correoVerificado'
+        ])
+        && (!request.resource.data.keys().hasAny(['nombre'])
+          || (request.resource.data.nombre is string
+            && request.resource.data.nombre.size() > 0
+            && request.resource.data.nombre.size() <= 100));
 
       allow read: if request.auth != null && request.auth.uid == uid;
 
       allow update: if request.auth != null
         && request.auth.uid == uid
         && request.resource.data.uid == uid
-        && request.resource.data.correo is string
-        && request.resource.data.tipo in [
-          'Estudiante',
-          'Empleado',
-          'Empresa',
-          'Egresado'
-        ]
-        && request.resource.data.keys().hasOnly([
-          'uid',
-          'correo',
-          'tipo',
-          'fechaRegistro'
-        ]);
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['nombre', 'telefono'])
+        && (!request.resource.data.keys().hasAny(['nombre'])
+          || (request.resource.data.nombre is string
+            && request.resource.data.nombre.size() <= 100))
+        && (!request.resource.data.keys().hasAny(['telefono'])
+          || (request.resource.data.telefono is string
+            && request.resource.data.telefono.size() <= 20));
 
       allow delete: if false;
     }

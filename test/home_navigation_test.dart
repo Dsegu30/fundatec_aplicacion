@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fundatec/app_theme.dart';
 import 'package:fundatec/home.dart';
@@ -76,11 +75,62 @@ void main() {
     expect(find.byTooltip('Perfil'), findsOneWidget);
   });
 
+  testWidgets('Perfil ejecuta la acción de cierre de sesión recibida', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    var cerradaSesion = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PerfilPage(
+          onLogout: () async {
+            cerradaSesion = true;
+          },
+        ),
+      ),
+    );
+
+    await tester.ensureVisible(find.text('Cerrar sesión'));
+    await tester.tap(find.text('Cerrar sesión').first);
+    await tester.pumpAndSettle();
+    expect(find.text('¿Cerrar sesión?'), findsOneWidget);
+
+    await tester.tap(find.text('Cerrar sesión').last);
+    await tester.pumpAndSettle();
+
+    expect(cerradaSesion, isTrue);
+  });
+
+  testWidgets('Perfil solo muestra opciones relacionadas con la cuenta', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(home: PerfilPage(onSectionSelected: (_) {})),
+    );
+
+    expect(find.text('Mi carrera'), findsNothing);
+    expect(find.text('Mis documentos'), findsNothing);
+    expect(find.text('Ayuda'), findsNothing);
+    expect(find.text('Calendario académico'), findsNothing);
+    expect(find.text('Avisos y notificaciones'), findsNothing);
+    expect(find.text('Información personal'), findsOneWidget);
+    expect(find.text('Seguridad de la cuenta'), findsOneWidget);
+    expect(find.text('Configuración'), findsOneWidget);
+  });
+
   testWidgets('Perfil integrado usa la barra compartida de Inicio', (
     WidgetTester tester,
   ) async {
-    SharedPreferences.setMockInitialValues({});
-    await tester.pumpWidget(const TecApp());
+    await tester.pumpWidget(const MaterialApp(home: TecHomeScreen()));
     await tester.tap(find.byTooltip('Perfil'));
     await tester.pumpAndSettle();
 
@@ -95,8 +145,7 @@ void main() {
   testWidgets('la búsqueda de Licenciatura abre su pantalla', (
     WidgetTester tester,
   ) async {
-    SharedPreferences.setMockInitialValues({});
-    await tester.pumpWidget(const TecApp());
+    await tester.pumpWidget(const MaterialApp(home: TecHomeScreen()));
 
     expect(find.byType(TextField).first, findsOneWidget);
     expect(find.byIcon(Icons.tune_rounded), findsNothing);

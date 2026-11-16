@@ -50,16 +50,13 @@ class _CursosLibresCatalogoPageState extends State<CursosLibresCatalogoPage>
     with SingleTickerProviderStateMixin {
   int selectedIndex = 0;
 
-  String _busqueda = '';
-  String _filtro = 'Todos';
-
-  final TextEditingController _busquedaController = TextEditingController();
-
   late final AnimationController _entradaController;
   late final Animation<double> _fadeAnimation;
   late final Animation<Offset> _slideAnimation;
 
-  final ScrollController _scrollController = ScrollController();
+  // ----------------------------------------------------------
+  // CURSOS
+  // ----------------------------------------------------------
 
   static const List<_CursoData> _cursos = [
     _CursoData(
@@ -214,6 +211,10 @@ class _CursosLibresCatalogoPageState extends State<CursosLibresCatalogoPage>
     ),
   ];
 
+  // ----------------------------------------------------------
+  // CATEGORÍAS
+  // ----------------------------------------------------------
+
   static const Map<String, List<String>> _categorias = {
     'Herramientas digitales y datos': [
       'Herramientas digitales',
@@ -231,28 +232,6 @@ class _CursosLibresCatalogoPageState extends State<CursosLibresCatalogoPage>
     'Producción': ['Producción'],
   };
 
-  List<String> get _filtros => ['Todos', ..._categorias.keys];
-
-  List<_CursoData> get _cursosFiltrados {
-    final consulta = _busqueda.trim().toLowerCase();
-
-    return _cursos.where((curso) {
-      final coincideTexto =
-          consulta.isEmpty ||
-          curso.titulo.toLowerCase().contains(consulta) ||
-          curso.categoria.toLowerCase().contains(consulta) ||
-          curso.descripcion.toLowerCase().contains(consulta);
-
-      final categoriasSeleccionadas = _categorias[_filtro] ?? const [];
-
-      final coincideCategoria =
-          _filtro == 'Todos' ||
-          categoriasSeleccionadas.contains(curso.categoria);
-
-      return coincideTexto && coincideCategoria;
-    }).toList();
-  }
-
   Color _colorGrupo(String grupo) {
     switch (grupo) {
       case 'Herramientas digitales y datos':
@@ -269,6 +248,10 @@ class _CursosLibresCatalogoPageState extends State<CursosLibresCatalogoPage>
         return _accentBlue;
     }
   }
+
+  // ----------------------------------------------------------
+  // ANIMACIONES
+  // ----------------------------------------------------------
 
   @override
   void initState() {
@@ -295,8 +278,6 @@ class _CursosLibresCatalogoPageState extends State<CursosLibresCatalogoPage>
   @override
   void dispose() {
     _entradaController.dispose();
-    _scrollController.dispose();
-    _busquedaController.dispose();
     super.dispose();
   }
 
@@ -520,105 +501,7 @@ class _CursosLibresCatalogoPageState extends State<CursosLibresCatalogoPage>
   }
 
   // ----------------------------------------------------------
-  // BÚSQUEDA Y FILTROS
-  // ----------------------------------------------------------
-
-  Widget _construirBusqueda() {
-    final theme = Theme.of(context);
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: TextField(
-          controller: _busquedaController,
-          onChanged: (value) {
-            setState(() => _busqueda = value);
-          },
-          style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 13),
-          decoration: InputDecoration(
-            hintText: 'Buscar un curso...',
-            hintStyle: TextStyle(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontSize: 12,
-            ),
-            prefixIcon: const Icon(Icons.search_rounded, color: _accentBlue),
-            suffixIcon: _busqueda.isEmpty
-                ? null
-                : IconButton(
-                    onPressed: () {
-                      _busquedaController.clear();
-                      setState(() => _busqueda = '');
-                    },
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-            filled: true,
-            fillColor: theme.colorScheme.surfaceContainerHigh.withValues(
-              alpha: 0.78,
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 17,
-              vertical: 16,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: _accentBlue, width: 1.5),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _construirFiltros() {
-    final theme = Theme.of(context);
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      child: Row(
-        children: _filtros.map((filtro) {
-          final activo = _filtro == filtro;
-
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              label: Text(filtro),
-              selected: activo,
-              onSelected: (_) {
-                setState(() => _filtro = filtro);
-              },
-              showCheckmark: false,
-              labelStyle: TextStyle(
-                color: activo
-                    ? Colors.white
-                    : theme.colorScheme.onSurfaceVariant,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w800,
-              ),
-              selectedColor: _primaryNavy,
-              backgroundColor: theme.colorScheme.surfaceContainerHigh
-                  .withValues(alpha: 0.8),
-              side: BorderSide(
-                color: activo ? _primaryNavy : theme.colorScheme.outlineVariant,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  // ----------------------------------------------------------
-  // TARJETAS DE CURSOS CON FOTOGRAFÍAS
+  // TARJETAS DE CURSOS
   // ----------------------------------------------------------
 
   Widget _crearTarjeta(
@@ -626,7 +509,6 @@ class _CursosLibresCatalogoPageState extends State<CursosLibresCatalogoPage>
     required double height,
     required double cardWidth,
   }) {
-    final contenidoAmplio = height >= 200 || cardWidth >= 600;
     const radio = 25.0;
 
     return GelPress(
@@ -641,17 +523,11 @@ class _CursosLibresCatalogoPageState extends State<CursosLibresCatalogoPage>
             height: height,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(radio),
-              gradient: LinearGradient(
-                colors: curso.colores,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.38)),
               boxShadow: [
                 BoxShadow(
-                  color: curso.colores.first.withValues(alpha: 0.22),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
+                  color: curso.colores.first.withValues(alpha: 0.24),
+                  blurRadius: 22,
+                  offset: const Offset(0, 9),
                 ),
               ],
             ),
@@ -660,103 +536,157 @@ class _CursosLibresCatalogoPageState extends State<CursosLibresCatalogoPage>
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Positioned.fill(
-                    child: Opacity(
-                      opacity: 0.68,
-                      child: Image.network(
-                        curso.imagen,
-                        fit: BoxFit.cover,
-                        filterQuality: FilterQuality.high,
-                        alignment: Alignment.centerRight,
-                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                      ),
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [
-                            curso.colores.first.withValues(alpha: 0.94),
-                            curso.colores.first.withValues(alpha: 0.72),
-                            curso.colores.last.withValues(alpha: 0.28),
-                          ],
-                          stops: const [0.0, 0.48, 1.0],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(17, 15, 43, 15),
-                    child: Row(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(17),
-                          child: BackdropFilter(
-                            filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                            child: Container(
-                              width: height >= 200 ? 58 : 51,
-                              height: height >= 200 ? 58 : 51,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.17),
-                                borderRadius: BorderRadius.circular(17),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.38),
-                                ),
-                              ),
-                              child: Icon(
-                                curso.icono,
-                                color: Colors.white,
-                                size: 27,
-                              ),
-                            ),
+                  // Imagen de fondo
+                  Image.network(
+                    curso.imagen,
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.high,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: curso.colores,
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
                         ),
-                        const SizedBox(width: 13),
+                      );
+                    },
+                  ),
+
+                  // Degradado principal
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          curso.colores.first.withValues(alpha: 0.97),
+                          curso.colores.first.withValues(alpha: 0.82),
+                          curso.colores.last.withValues(alpha: 0.45),
+                        ],
+                        stops: const [0.0, 0.52, 1.0],
+                      ),
+                    ),
+                  ),
+
+                  // Degradado inferior
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.22),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Decoración superior
+                  Positioned(
+                    top: -65,
+                    right: -25,
+                    child: Container(
+                      width: 180,
+                      height: 180,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.10),
+                          width: 25,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Decoración inferior
+                  Positioned(
+                    bottom: -75,
+                    right: 90,
+                    child: Container(
+                      width: 155,
+                      height: 155,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.045),
+                      ),
+                    ),
+                  ),
+
+                  // Contenido de la tarjeta
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(19, 17, 60, 17),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Ícono
+                        Container(
+                          width: 62,
+                          height: 62,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.17),
+                            borderRadius: BorderRadius.circular(19),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.35),
+                              width: 1.2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.10),
+                                blurRadius: 12,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            curso.icono,
+                            color: Colors.white,
+                            size: 32,
+                          ),
+                        ),
+
+                        const SizedBox(width: 17),
+
+                        // Información
                         Expanded(
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 curso.titulo,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: contenidoAmplio ? 17 : 15.5,
-                                  fontWeight: FontWeight.w800,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.18,
                                   letterSpacing: -0.3,
-                                  height: 1.16,
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.16,
-                                      ),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 1),
-                                    ),
-                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 7),
+
+                              const SizedBox(height: 9),
+
                               Text(
                                 curso.descripcion,
-                                maxLines: contenidoAmplio ? 3 : 2,
+                                maxLines: 3,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.90),
-                                  fontSize: contenidoAmplio ? 12 : 11.2,
-                                  height: 1.36,
+                                  color: Colors.white.withValues(alpha: 0.88),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.45,
                                 ),
                               ),
-                              const SizedBox(height: 8),
+
+                              const SizedBox(height: 11),
+
                               Wrap(
-                                spacing: 5,
-                                runSpacing: 5,
+                                spacing: 7,
+                                runSpacing: 6,
                                 children: [
                                   _etiquetaGlass(curso.categoria),
                                   _etiquetaGlass(curso.niveles),
@@ -768,12 +698,14 @@ class _CursosLibresCatalogoPageState extends State<CursosLibresCatalogoPage>
                       ],
                     ),
                   ),
+
+                  // Flecha
                   Positioned(
-                    right: 11,
-                    bottom: 11,
+                    right: 15,
+                    bottom: 15,
                     child: Container(
-                      width: 33,
-                      height: 33,
+                      width: 38,
+                      height: 38,
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.20),
                         shape: BoxShape.circle,
@@ -784,7 +716,7 @@ class _CursosLibresCatalogoPageState extends State<CursosLibresCatalogoPage>
                       child: const Icon(
                         Icons.arrow_forward_rounded,
                         color: Colors.white,
-                        size: 18,
+                        size: 21,
                       ),
                     ),
                   ),
@@ -797,18 +729,22 @@ class _CursosLibresCatalogoPageState extends State<CursosLibresCatalogoPage>
     );
   }
 
+  // ----------------------------------------------------------
+  // ETIQUETAS
+  // ----------------------------------------------------------
+
   Widget _etiquetaGlass(String texto) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(30),
       child: BackdropFilter(
         filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          constraints: const BoxConstraints(maxWidth: 190),
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.16),
+            color: Colors.white.withValues(alpha: 0.17),
             borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.30)),
           ),
           child: Text(
             texto,
@@ -816,8 +752,8 @@ class _CursosLibresCatalogoPageState extends State<CursosLibresCatalogoPage>
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
+              fontSize: 9.5,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ),
@@ -831,327 +767,168 @@ class _CursosLibresCatalogoPageState extends State<CursosLibresCatalogoPage>
 
   Widget _construirCatalogo({required double ancho, required double alto}) {
     final theme = Theme.of(context);
-    final cursosFiltrados = _cursosFiltrados;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final anchoDisponible = constraints.maxWidth;
         final hinge = ResponsiveLayout.verticalHinge(context);
 
-        final columnasSugeridas = ResponsiveLayout.columnsForWidth(
-          anchoDisponible,
-          hinge: hinge,
-          threeColumnMinWidth: 1050,
-          twoColumnMinWidth: 570,
-        );
+        // Una columna en celulares.
+        // Dos columnas en pantallas amplias.
+        final columnas = hinge != null || anchoDisponible >= 720 ? 2 : 1;
 
         final landscape = ancho > alto && alto < 600;
 
-        final columnas = landscape && hinge == null && anchoDisponible < 900
-            ? 1
-            : columnasSugeridas;
+        final textScale = MediaQuery.textScalerOf(context).scale(17) / 17;
+        final alturaTarjeta =
+            (landscape
+                ? 215.0
+                : columnas == 1
+                ? 210.0
+                : 220.0) *
+            textScale;
 
-        final escalaTexto = MediaQuery.textScalerOf(context).scale(1);
-
-        final alturaBase = landscape
-            ? 176.0
-            : columnas == 1
-            ? 188.0
-            : 205.0;
-
-        final alturaTarjeta = alturaBase * math.max(1, escalaTexto);
-
-        final espacio = ResponsiveLayout.spacingFor(context, minimum: 15);
+        final espacio = ResponsiveLayout.spacingFor(context, minimum: 16);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Explorá el catálogo',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.7,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.brightness == Brightness.dark
-                        ? Colors.white.withValues(alpha: 0.07)
-                        : Colors.white.withValues(alpha: 0.82),
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(
-                      color: theme.brightness == Brightness.dark
-                          ? Colors.white.withValues(alpha: 0.12)
-                          : Colors.white,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.grid_view_rounded,
-                        color: _accentBlue,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 7),
-                      Text(
-                        '${cursosFiltrados.length} cursos',
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurface,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Explorá las áreas y encontrá tu próximo aprendizaje.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                height: 1.45,
-              ),
-            ),
-            const SizedBox(height: 20),
-            _construirBusqueda(),
-            const SizedBox(height: 13),
-            _construirFiltros(),
-            const SizedBox(height: 23),
+            for (final grupo in _categorias.entries)
+              Builder(
+                builder: (context) {
+                  final cursosGrupo = _cursos
+                      .where((curso) => grupo.value.contains(curso.categoria))
+                      .toList();
 
-            if (cursosFiltrados.isEmpty)
-              _construirSinResultados()
-            else
-              for (final grupo in _categorias.entries)
-                Builder(
-                  builder: (context) {
-                    final cursosGrupo = cursosFiltrados
-                        .where((curso) => grupo.value.contains(curso.categoria))
-                        .toList();
+                  if (cursosGrupo.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
 
-                    if (cursosGrupo.isEmpty) {
-                      return const SizedBox.shrink();
-                    }
+                  final color = _colorGrupo(grupo.key);
 
-                    final color = _colorGrupo(grupo.key);
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 25),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 4,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                  color: color,
-                                  borderRadius: BorderRadius.circular(10),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: color.withValues(alpha: 0.25),
-                                      blurRadius: 8,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 11),
-                              Expanded(
-                                child: Text(
-                                  grupo.key,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: -0.35,
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: color.withValues(alpha: 0.11),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: color.withValues(alpha: 0.14),
-                                  ),
-                                ),
-                                child: Text(
-                                  '${cursosGrupo.length}',
-                                  style: TextStyle(
-                                    color: color,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 13),
-                          if (columnas == 1)
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                for (
-                                  var i = 0;
-                                  i < cursosGrupo.length;
-                                  i++
-                                ) ...[
-                                  if (i > 0) SizedBox(height: espacio),
-                                  _crearTarjeta(
-                                    cursosGrupo[i],
-                                    height: alturaTarjeta,
-                                    cardWidth: anchoDisponible,
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 30),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Encabezado de categoría
+                        Row(
+                          children: [
+                            Container(
+                              width: 5,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                color: color,
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: color.withValues(alpha: 0.25),
+                                    blurRadius: 8,
                                   ),
                                 ],
-                              ],
-                            )
-                          else
-                            GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: cursosGrupo.length,
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: columnas,
-                                    crossAxisSpacing: espacio,
-                                    mainAxisSpacing: espacio,
-                                    mainAxisExtent: alturaTarjeta,
-                                  ),
-                              itemBuilder: (context, index) {
-                                return _crearTarjeta(
-                                  cursosGrupo[index],
-                                  height: alturaTarjeta,
-                                  cardWidth:
-                                      (anchoDisponible -
-                                          espacio * (columnas - 1)) /
-                                      columnas,
-                                );
-                              },
+                              ),
                             ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
 
-            _construirPieCatalogo(),
+                            const SizedBox(width: 12),
+
+                            Expanded(
+                              child: Text(
+                                grupo.key,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.4,
+                                ),
+                              ),
+                            ),
+
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 11,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: color.withValues(alpha: 0.11),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: color.withValues(alpha: 0.18),
+                                ),
+                              ),
+                              child: Text(
+                                '${cursosGrupo.length}',
+                                style: TextStyle(
+                                  color: color,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 17),
+
+                        // CELULAR: UNA TARJETA POR FILA
+                        if (columnas == 1) ...[
+                          for (var i = 0; i < cursosGrupo.length; i++) ...[
+                            _crearTarjeta(
+                              cursosGrupo[i],
+                              height: alturaTarjeta,
+                              cardWidth: anchoDisponible,
+                            ),
+
+                            if (i < cursosGrupo.length - 1)
+                              SizedBox(height: espacio),
+                          ],
+                        ],
+
+                        // TABLET Y ESCRITORIO: DOS TARJETAS POR FILA
+                        if (columnas == 2) ...[
+                          for (var i = 0; i < cursosGrupo.length; i += 2) ...[
+                            if (i + 1 < cursosGrupo.length)
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: _crearTarjeta(
+                                      cursosGrupo[i],
+                                      height: alturaTarjeta,
+                                      cardWidth:
+                                          (anchoDisponible - espacio) / 2,
+                                    ),
+                                  ),
+
+                                  SizedBox(width: espacio),
+
+                                  Expanded(
+                                    child: _crearTarjeta(
+                                      cursosGrupo[i + 1],
+                                      height: alturaTarjeta,
+                                      cardWidth:
+                                          (anchoDisponible - espacio) / 2,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else
+                              // ÚLTIMA TARJETA IMPAR: ANCHO COMPLETO
+                              _crearTarjeta(
+                                cursosGrupo[i],
+                                height: alturaTarjeta,
+                                cardWidth: anchoDisponible,
+                              ),
+
+                            if (i + 2 < cursosGrupo.length)
+                              SizedBox(height: espacio),
+                          ],
+                        ],
+                      ],
+                    ),
+                  );
+                },
+              ),
           ],
         );
       },
-    );
-  }
-
-  Widget _construirSinResultados() {
-    final theme = Theme.of(context);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.75),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.search_off_rounded,
-            size: 45,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'No encontramos cursos',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Probá con otro nombre o seleccioná otra categoría.',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _construirPieCatalogo() {
-    final theme = Theme.of(context);
-    final dark = theme.brightness == Brightness.dark;
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(22),
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(17),
-          decoration: BoxDecoration(
-            color: dark
-                ? Colors.white.withValues(alpha: 0.045)
-                : Colors.white.withValues(alpha: 0.76),
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: dark
-                  ? Colors.white.withValues(alpha: 0.10)
-                  : Colors.white.withValues(alpha: 0.95),
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF164B73), _accentBlue],
-                  ),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(
-                  Icons.school_rounded,
-                  color: Colors.white,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Text(
-                  'Descubrí nuevas oportunidades de formación.',
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurface,
-                    fontSize: 12,
-                    height: 1.4,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const Icon(
-                Icons.arrow_forward_rounded,
-                color: _accentBlue,
-                size: 20,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -1171,6 +948,7 @@ class _CursosLibresCatalogoPageState extends State<CursosLibresCatalogoPage>
           builder: (context, constraints) {
             final width = constraints.maxWidth;
             final height = constraints.maxHeight;
+
             final wide = width >= 720;
 
             final landscape = ResponsiveLayout.isCompactLandscape(
@@ -1183,6 +961,7 @@ class _CursosLibresCatalogoPageState extends State<CursosLibresCatalogoPage>
             return Stack(
               children: [
                 const FondoAppDifuminado(),
+
                 Align(
                   alignment: Alignment.topCenter,
                   child: SizedBox(
@@ -1192,7 +971,6 @@ class _CursosLibresCatalogoPageState extends State<CursosLibresCatalogoPage>
                       child: SlideTransition(
                         position: _slideAnimation,
                         child: CustomScrollView(
-                          controller: _scrollController,
                           physics: const BouncingScrollPhysics(
                             parent: AlwaysScrollableScrollPhysics(),
                           ),
@@ -1203,6 +981,7 @@ class _CursosLibresCatalogoPageState extends State<CursosLibresCatalogoPage>
                                 wide: wide,
                               ),
                             ),
+
                             SliverPadding(
                               padding: EdgeInsets.fromLTRB(
                                 wide ? 26 : 16,
@@ -1223,6 +1002,8 @@ class _CursosLibresCatalogoPageState extends State<CursosLibresCatalogoPage>
                     ),
                   ),
                 ),
+
+                // Navegación inferior
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: NavegacionGlass(

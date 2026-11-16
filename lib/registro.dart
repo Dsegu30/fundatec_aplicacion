@@ -4,8 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, kIsWeb;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -37,10 +36,7 @@ const Color _textoOscuro = Color(0xFF153653);
 const Color _textoSecundario = Color(0xFF526E88);
 
 class RegistroApp extends StatelessWidget {
-  const RegistroApp({
-    super.key,
-    this.onRegistrationComplete,
-  });
+  const RegistroApp({super.key, this.onRegistrationComplete});
 
   final VoidCallback? onRegistrationComplete;
 
@@ -50,18 +46,13 @@ class RegistroApp extends StatelessWidget {
       title: 'TEC Móvil',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(Brightness.light),
-      home: RegistroPage(
-        onRegistrationComplete: onRegistrationComplete,
-      ),
+      home: RegistroPage(onRegistrationComplete: onRegistrationComplete),
     );
   }
 }
 
 class RegistroPage extends StatefulWidget {
-  const RegistroPage({
-    super.key,
-    this.onRegistrationComplete,
-  });
+  const RegistroPage({super.key, this.onRegistrationComplete});
 
   final VoidCallback? onRegistrationComplete;
 
@@ -72,6 +63,7 @@ class RegistroPage extends StatefulWidget {
 class _RegistroPageState extends State<RegistroPage>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
+  final _nombreController = TextEditingController();
   final _correoController = TextEditingController();
   final _contrasenaController = TextEditingController();
   final _confirmarContrasenaController = TextEditingController();
@@ -112,6 +104,7 @@ class _RegistroPageState extends State<RegistroPage>
   void dispose() {
     _liquidController.dispose();
     _entradaController.dispose();
+    _nombreController.dispose();
     _correoController.dispose();
     _contrasenaController.dispose();
     _confirmarContrasenaController.dispose();
@@ -120,15 +113,13 @@ class _RegistroPageState extends State<RegistroPage>
 
   String _clavePreferenciaBiometrica(String correo) =>
       _biometriaPreferencePrefix +
-      base64UrlEncode(
-        utf8.encode(correo.trim().toLowerCase()),
-      ).replaceAll('=', '');
+      base64UrlEncode(utf8.encode(correo.trim().toLowerCase()))
+          .replaceAll('=', '');
 
   String _claveCredencialBiometrica(String correo) =>
       _biometriaCredentialPrefix +
-      base64UrlEncode(
-        utf8.encode(correo.trim().toLowerCase()),
-      ).replaceAll('=', '');
+      base64UrlEncode(utf8.encode(correo.trim().toLowerCase()))
+          .replaceAll('=', '');
 
   Future<void> _iniciarSesion() async {
     if (_procesando ||
@@ -146,6 +137,7 @@ class _RegistroPageState extends State<RegistroPage>
 
       if (_mostrarRegistro) {
         await _crearCuentaFirebase(
+          nombre: _nombreController.text.trim(),
           correo: correo,
           contrasena: contrasena,
           tipoUsuario: _tipoUsuario,
@@ -174,6 +166,7 @@ class _RegistroPageState extends State<RegistroPage>
         if (!mounted) return;
 
         _formKey.currentState?.reset();
+        _nombreController.clear();
         _correoController.text = correo;
         _contrasenaController.clear();
         _confirmarContrasenaController.clear();
@@ -192,16 +185,14 @@ class _RegistroPageState extends State<RegistroPage>
         return;
       }
 
-      final credencial =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final credencial = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: correo,
         password: contrasena,
       );
 
       final preferences = await SharedPreferences.getInstance();
 
-      if (preferences.getBool(_clavePreferenciaBiometrica(correo)) ==
-          true) {
+      if (preferences.getBool(_clavePreferenciaBiometrica(correo)) == true) {
         try {
           await _guardarCredencialesBiometricas(
             correo: correo,
@@ -234,15 +225,16 @@ class _RegistroPageState extends State<RegistroPage>
   }
 
   Future<User> _crearCuentaFirebase({
+    required String nombre,
     required String correo,
     required String contrasena,
     required String tipoUsuario,
   }) async {
-    final credencial =
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
-      email: correo.trim(),
-      password: contrasena,
-    );
+    final credencial = await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(
+          email: correo.trim(),
+          password: contrasena,
+        );
 
     final usuario = credencial.user;
 
@@ -255,12 +247,19 @@ class _RegistroPageState extends State<RegistroPage>
           .collection(_coleccionUsuarios)
           .doc(usuario.uid)
           .set({
-        'uid': usuario.uid,
-        'correo': correo.trim(),
-        'tipo': tipoUsuario,
-        'fechaRegistro': FieldValue.serverTimestamp(),
-        'correoVerificado': false,
-      });
+            'uid': usuario.uid,
+            'nombre': nombre.trim(),
+            'correo': correo.trim(),
+            'tipo': tipoUsuario,
+            'fechaRegistro': FieldValue.serverTimestamp(),
+            'correoVerificado': false,
+          });
+
+      try {
+        await usuario.updateDisplayName(nombre.trim());
+      } catch (error) {
+        debugPrint('No se pudo guardar el nombre en Firebase Auth: $error');
+      }
 
       await usuario.sendEmailVerification();
 
@@ -276,9 +275,7 @@ class _RegistroPageState extends State<RegistroPage>
               .delete();
           await usuario.delete();
         } catch (errorAlRevertir) {
-          debugPrint(
-            'No se pudo revertir el registro: $errorAlRevertir',
-          );
+          debugPrint('No se pudo revertir el registro: $errorAlRevertir');
         }
       }
 
@@ -296,10 +293,7 @@ class _RegistroPageState extends State<RegistroPage>
 
     await _almacenSeguro.write(
       key: clave,
-      value: jsonEncode({
-        'correo': correo,
-        'contrasena': contrasena,
-      }),
+      value: jsonEncode({'correo': correo, 'contrasena': contrasena}),
     );
 
     final preferences = await SharedPreferences.getInstance();
@@ -319,9 +313,7 @@ class _RegistroPageState extends State<RegistroPage>
     final preferences = await SharedPreferences.getInstance();
 
     await preferences.remove(_clavePreferenciaBiometrica(correo));
-    await _almacenSeguro.delete(
-      key: _claveCredencialBiometrica(correo),
-    );
+    await _almacenSeguro.delete(key: _claveCredencialBiometrica(correo));
   }
 
   String _mensajeErrorFirebase(FirebaseAuthException error) =>
@@ -333,8 +325,7 @@ class _RegistroPageState extends State<RegistroPage>
         'invalid-email' => 'El correo no tiene un formato válido.',
         'invalid-credential' ||
         'wrong-password' ||
-        'user-not-found' =>
-          'El correo o la contraseña no son correctos.',
+        'user-not-found' => 'El correo o la contraseña no son correctos.',
         'operation-not-allowed' =>
           'Activa el proveedor Correo/contraseña en Firebase Authentication.',
         'network-request-failed' =>
@@ -350,8 +341,7 @@ class _RegistroPageState extends State<RegistroPage>
           'Firebase rechazó guardar el perfil. Revisa las reglas de Firestore.',
         'failed-precondition' || 'not-found' =>
           'Crea la base de datos de Cloud Firestore en Firebase Console.',
-        'unavailable' =>
-          'Firestore no está disponible. Revisa tu conexión.',
+        'unavailable' => 'Firestore no está disponible. Revisa tu conexión.',
         _ => 'No se pudo guardar el perfil en Firestore (${error.code}).',
       };
 
@@ -409,9 +399,7 @@ class _RegistroPageState extends State<RegistroPage>
         return;
       }
 
-      final datos = Map<String, dynamic>.from(
-        jsonDecode(guardado) as Map,
-      );
+      final datos = Map<String, dynamic>.from(jsonDecode(guardado) as Map);
 
       final correoGuardado = datos['correo'] as String?;
       final contrasenaGuardada = datos['contrasena'] as String?;
@@ -486,9 +474,7 @@ class _RegistroPageState extends State<RegistroPage>
         setState(() => _biometriaActivada = true);
         _mostrarMensaje('Datos biométricos activados para esta cuenta.');
       } else {
-        _mostrarMensaje(
-          'No se activaron. Puedes continuar con tu contraseña.',
-        );
+        _mostrarMensaje('No se activaron. Puedes continuar con tu contraseña.');
       }
     } on LocalAuthException catch (error) {
       if (mounted) {
@@ -497,9 +483,7 @@ class _RegistroPageState extends State<RegistroPage>
     } catch (error) {
       debugPrint('Error activando biometría: $error');
       if (mounted) {
-        _mostrarMensaje(
-          'No se pudo activar la biometría. Inténtalo de nuevo.',
-        );
+        _mostrarMensaje('No se pudo activar la biometría. Inténtalo de nuevo.');
       }
     } finally {
       if (mounted) {
@@ -525,8 +509,8 @@ class _RegistroPageState extends State<RegistroPage>
       return false;
     }
 
-    final biometriaRegistrada =
-        await _autenticacionLocal.getAvailableBiometrics();
+    final biometriaRegistrada = await _autenticacionLocal
+        .getAvailableBiometrics();
 
     if (biometriaRegistrada.isEmpty) {
       _mostrarMensaje(
@@ -573,9 +557,7 @@ class _RegistroPageState extends State<RegistroPage>
     }
 
     Navigator.of(context).pushAndRemoveUntil<void>(
-      MaterialPageRoute<void>(
-        builder: (_) => const TecHomeScreen(),
-      ),
+      MaterialPageRoute<void>(builder: (_) => const TecHomeScreen()),
       (route) => false,
     );
   }
@@ -584,6 +566,7 @@ class _RegistroPageState extends State<RegistroPage>
     if (_procesando || _procesandoBiometria) return;
 
     _formKey.currentState?.reset();
+    _nombreController.clear();
     _correoController.clear();
     _contrasenaController.clear();
     _confirmarContrasenaController.clear();
@@ -614,10 +597,7 @@ class _RegistroPageState extends State<RegistroPage>
           child: ClipRRect(
             borderRadius: BorderRadius.circular(30),
             child: BackdropFilter(
-              filter: ui.ImageFilter.blur(
-                sigmaX: 24,
-                sigmaY: 24,
-              ),
+              filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
               child: Container(
                 padding: const EdgeInsets.fromLTRB(25, 28, 25, 22),
                 decoration: BoxDecoration(
@@ -651,8 +631,7 @@ class _RegistroPageState extends State<RegistroPage>
                       height: 72,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: const Color(0xFF168568)
-                            .withValues(alpha: 0.12),
+                        color: const Color(0xFF168568).withValues(alpha: 0.12),
                         border: Border.all(
                           color: const Color(0xFF168568)
                               .withValues(alpha: 0.24),
@@ -678,14 +657,14 @@ class _RegistroPageState extends State<RegistroPage>
                     Text(
                       biometriaGuardada
                           ? 'Tu cuenta de TEC Móvil se creó correctamente.\n\n'
-                              'Te enviamos un correo para verificar tu dirección. '
-                              'Revisá tu bandeja de entrada y la carpeta de spam.\n\n'
-                              'Presioná CONFIRMAR para continuar al inicio de sesión.'
+                                'Te enviamos un correo para verificar tu dirección. '
+                                'Revisá tu bandeja de entrada y la carpeta de spam.\n\n'
+                                'Presioná CONFIRMAR para continuar al inicio de sesión.'
                           : 'Tu cuenta se creó correctamente, pero no se pudo '
-                              'guardar el acceso biométrico.\n\n'
-                              'Te enviamos un correo para verificar tu dirección. '
-                              'Revisá tu bandeja de entrada y la carpeta de spam.\n\n'
-                              'Presioná CONFIRMAR para continuar al inicio de sesión.',
+                                'guardar el acceso biométrico.\n\n'
+                                'Te enviamos un correo para verificar tu dirección. '
+                                'Revisá tu bandeja de entrada y la carpeta de spam.\n\n'
+                                'Presioná CONFIRMAR para continuar al inicio de sesión.',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: _textoSecundario,
@@ -718,10 +697,12 @@ class _RegistroPageState extends State<RegistroPage>
 
     final texto = mensaje.toLowerCase();
 
-    final esExito = texto.contains('correctamente') ||
+    final esExito =
+        texto.contains('correctamente') ||
         texto.contains('activados para esta cuenta');
 
-    final esError = texto.contains('no se pudo') ||
+    final esError =
+        texto.contains('no se pudo') ||
         texto.contains('no son correctos') ||
         texto.contains('no se confirmó') ||
         texto.contains('no se activaron') ||
@@ -734,8 +715,8 @@ class _RegistroPageState extends State<RegistroPage>
     final color = esExito
         ? const Color(0xFF168568)
         : esError
-            ? const Color(0xFFB84B61)
-            : const Color(0xFF287BB1);
+        ? const Color(0xFFB84B61)
+        : const Color(0xFF287BB1);
 
     showDialog<void>(
       context: context,
@@ -791,8 +772,8 @@ class _RegistroPageState extends State<RegistroPage>
                         esExito
                             ? Icons.check_circle_rounded
                             : esError
-                                ? Icons.info_rounded
-                                : Icons.fingerprint_rounded,
+                            ? Icons.info_rounded
+                            : Icons.fingerprint_rounded,
                         color: color,
                         size: 38,
                       ),
@@ -802,8 +783,8 @@ class _RegistroPageState extends State<RegistroPage>
                       esExito
                           ? '¡Todo listo!'
                           : esError
-                              ? 'Revisa esta información'
-                              : 'Aviso de TEC Móvil',
+                          ? 'Revisa esta información'
+                          : 'Aviso de TEC Móvil',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: _textoOscuro,
@@ -862,41 +843,29 @@ class _RegistroPageState extends State<RegistroPage>
           Positioned(
             top: -200,
             left: -220,
-            child: _brillo(
-              470,
-              const [
-                Color(0xB34DDCFF),
-                Color(0x4450A9FF),
-                Color(0x0050A9FF),
-              ],
-              velocidad: 1,
-            ),
+            child: _brillo(470, const [
+              Color(0xB34DDCFF),
+              Color(0x4450A9FF),
+              Color(0x0050A9FF),
+            ], velocidad: 1),
           ),
           Positioned(
             top: 180,
             right: -270,
-            child: _brillo(
-              520,
-              const [
-                Color(0x887D83FF),
-                Color(0x3364BFFF),
-                Color(0x0064BFFF),
-              ],
-              velocidad: -0.75,
-            ),
+            child: _brillo(520, const [
+              Color(0x887D83FF),
+              Color(0x3364BFFF),
+              Color(0x0064BFFF),
+            ], velocidad: -0.75),
           ),
           Positioned(
             bottom: -280,
             left: -130,
-            child: _brillo(
-              540,
-              const [
-                Color(0x8871EFFF),
-                Color(0x3348A5FF),
-                Color(0x0048A5FF),
-              ],
-              velocidad: 0.65,
-            ),
+            child: _brillo(540, const [
+              Color(0x8871EFFF),
+              Color(0x3348A5FF),
+              Color(0x0048A5FF),
+            ], velocidad: 0.65),
           ),
           AnimatedBuilder(
             animation: _liquidController,
@@ -906,13 +875,15 @@ class _RegistroPageState extends State<RegistroPage>
               return Stack(
                 children: [
                   Positioned(
-                    top: MediaQuery.sizeOf(context).height * 0.22 +
+                    top:
+                        MediaQuery.sizeOf(context).height * 0.22 +
                         math.sin(t) * 12,
                     right: 42,
                     child: _destello(5, 0.45 + 0.45 * math.sin(t)),
                   ),
                   Positioned(
-                    bottom: MediaQuery.sizeOf(context).height * 0.23 +
+                    bottom:
+                        MediaQuery.sizeOf(context).height * 0.23 +
                         math.cos(t) * 16,
                     left: 34,
                     child: _destello(4, 0.45 + 0.45 * math.cos(t)),
@@ -964,11 +935,7 @@ class _RegistroPageState extends State<RegistroPage>
     );
   }
 
-  Widget _brillo(
-    double size,
-    List<Color> colors, {
-    double velocidad = 1,
-  }) {
+  Widget _brillo(double size, List<Color> colors, {double velocidad = 1}) {
     return AnimatedBuilder(
       animation: _liquidController,
       child: ImageFiltered(
@@ -978,22 +945,15 @@ class _RegistroPageState extends State<RegistroPage>
           height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: colors,
-              stops: const [0, 0.55, 1],
-            ),
+            gradient: RadialGradient(colors: colors, stops: const [0, 0.55, 1]),
           ),
         ),
       ),
       builder: (context, child) {
-        final fase =
-            _liquidController.value * math.pi * 2 * velocidad;
+        final fase = _liquidController.value * math.pi * 2 * velocidad;
 
         return Transform.translate(
-          offset: Offset(
-            math.sin(fase) * 30,
-            math.cos(fase * 0.72) * 26,
-          ),
+          offset: Offset(math.sin(fase) * 30, math.cos(fase * 0.72) * 26),
           child: Transform.scale(
             scale: 1 + math.sin(fase) * 0.055,
             child: child,
@@ -1034,8 +994,7 @@ class _RegistroPageState extends State<RegistroPage>
                 borderRadius: BorderRadius.circular(35),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF000814)
-                        .withValues(alpha: 0.34),
+                    color: const Color(0xFF000814).withValues(alpha: 0.34),
                     blurRadius: 48,
                     offset: const Offset(0, 24),
                   ),
@@ -1049,10 +1008,7 @@ class _RegistroPageState extends State<RegistroPage>
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(35),
                 child: BackdropFilter(
-                  filter: ui.ImageFilter.blur(
-                    sigmaX: 28,
-                    sigmaY: 28,
-                  ),
+                  filter: ui.ImageFilter.blur(sigmaX: 28, sigmaY: 28),
                   child: Container(
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
@@ -1085,44 +1041,33 @@ class _RegistroPageState extends State<RegistroPage>
 
                                   return LayoutBuilder(
                                     builder: (context, constraints) {
-                                      final ancho =
-                                          constraints.maxWidth;
+                                      final ancho = constraints.maxWidth;
 
                                       return Stack(
                                         children: [
                                           Positioned(
-                                            left: (t * (ancho + 300)) -
-                                                300,
+                                            left: (t * (ancho + 300)) - 300,
                                             top: -100,
                                             bottom: -100,
                                             width: 135,
                                             child: Transform.rotate(
                                               angle: -0.22,
                                               child: DecoratedBox(
-                                                decoration:
-                                                    BoxDecoration(
-                                                  gradient:
-                                                      LinearGradient(
-                                                    begin:
-                                                        Alignment.topCenter,
-                                                    end: Alignment
-                                                        .bottomCenter,
+                                                decoration: BoxDecoration(
+                                                  gradient: LinearGradient(
+                                                    begin: Alignment.topCenter,
+                                                    end: Alignment.bottomCenter,
                                                     colors: [
-                                                      Colors.white
-                                                          .withValues(
+                                                      Colors.white.withValues(
                                                         alpha: 0,
                                                       ),
-                                                      Colors.white
-                                                          .withValues(
+                                                      Colors.white.withValues(
                                                         alpha: 0.22,
                                                       ),
                                                       const Color(
-                                                              0xFF9CEBFF)
-                                                          .withValues(
-                                                        alpha: 0.10,
-                                                      ),
-                                                      Colors.white
-                                                          .withValues(
+                                                        0xFF9CEBFF,
+                                                      ).withValues(alpha: 0.10),
+                                                      Colors.white.withValues(
                                                         alpha: 0,
                                                       ),
                                                     ],
@@ -1137,14 +1082,11 @@ class _RegistroPageState extends State<RegistroPage>
                                             right: 22,
                                             child: Container(
                                               height: 1,
-                                              decoration:
-                                                  BoxDecoration(
-                                                gradient:
-                                                    LinearGradient(
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(
                                                   colors: [
                                                     Colors.transparent,
-                                                    Colors.white
-                                                        .withValues(
+                                                    Colors.white.withValues(
                                                       alpha: 0.90,
                                                     ),
                                                     Colors.transparent,
@@ -1163,10 +1105,10 @@ class _RegistroPageState extends State<RegistroPage>
                           ),
                         ),
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(
-                            25,
+                          padding: EdgeInsets.fromLTRB(
+                            MediaQuery.sizeOf(context).width < 320 ? 12 : 25,
                             73,
-                            25,
+                            MediaQuery.sizeOf(context).width < 320 ? 12 : 25,
                             24,
                           ),
                           child: Form(
@@ -1199,27 +1141,43 @@ class _RegistroPageState extends State<RegistroPage>
                                   ),
                                 ),
                                 const SizedBox(height: 27),
+                                if (_mostrarRegistro) ...[
+                                  _campo(
+                                    controller: _nombreController,
+                                    hint: 'Nombre completo',
+                                    icono: Icons.person_outline_rounded,
+                                    textCapitalization:
+                                        TextCapitalization.words,
+                                    textInputAction: TextInputAction.next,
+                                    autofillHints: const [AutofillHints.name],
+                                    validator: (value) {
+                                      final nombre = value?.trim() ?? '';
+                                      if (nombre.isEmpty) {
+                                        return 'Escribe tu nombre completo.';
+                                      }
+                                      if (nombre.length > 100) {
+                                        return 'El nombre no puede superar 100 caracteres.';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 14),
+                                ],
                                 _campo(
                                   controller: _correoController,
                                   hint: 'Correo electrónico',
-                                  icono:
-                                      Icons.alternate_email_rounded,
-                                  keyboardType:
-                                      TextInputType.emailAddress,
-                                  autofillHints: const [
-                                    AutofillHints.email,
-                                  ],
+                                  icono: Icons.alternate_email_rounded,
+                                  keyboardType: TextInputType.emailAddress,
+                                  autofillHints: const [AutofillHints.email],
                                   validator: (value) {
-                                    final correo =
-                                        value?.trim() ?? '';
+                                    final correo = value?.trim() ?? '';
 
                                     if (correo.isEmpty) {
                                       return 'Escribe tu correo electrónico.';
                                     }
 
-                                    if (!RegExp(
-                                      r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
-                                    ).hasMatch(correo)) {
+                                    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+                                        .hasMatch(correo)) {
                                       return 'Revisa el formato del correo.';
                                     }
 
@@ -1232,9 +1190,7 @@ class _RegistroPageState extends State<RegistroPage>
                                   hint: 'Contraseña',
                                   icono: Icons.lock_outline_rounded,
                                   obscure: !_mostrarContrasena,
-                                  autofillHints: const [
-                                    AutofillHints.password,
-                                  ],
+                                  autofillHints: const [AutofillHints.password],
                                   textInputAction: _mostrarRegistro
                                       ? TextInputAction.next
                                       : TextInputAction.done,
@@ -1243,13 +1199,11 @@ class _RegistroPageState extends State<RegistroPage>
                                       : (_) => _iniciarSesion(),
                                   suffix: _botonMostrarContrasena(),
                                   validator: (value) {
-                                    if (value == null ||
-                                        value.isEmpty) {
+                                    if (value == null || value.isEmpty) {
                                       return 'Ingresa tu contraseña.';
                                     }
 
-                                    if (_mostrarRegistro &&
-                                        value.length < 8) {
+                                    if (_mostrarRegistro && value.length < 8) {
                                       return 'Usa al menos 8 caracteres.';
                                     }
 
@@ -1259,25 +1213,19 @@ class _RegistroPageState extends State<RegistroPage>
                                 if (_mostrarRegistro) ...[
                                   const SizedBox(height: 14),
                                   _campo(
-                                    controller:
-                                        _confirmarContrasenaController,
+                                    controller: _confirmarContrasenaController,
                                     hint: 'Confirmar contraseña',
                                     icono: Icons.verified_user_outlined,
                                     obscure: !_mostrarContrasena,
-                                    textInputAction:
-                                        TextInputAction.done,
-                                    onSubmitted: (_) =>
-                                        _iniciarSesion(),
-                                    suffix:
-                                        _botonMostrarContrasena(),
+                                    textInputAction: TextInputAction.done,
+                                    onSubmitted: (_) => _iniciarSesion(),
+                                    suffix: _botonMostrarContrasena(),
                                     validator: (value) {
-                                      if (value == null ||
-                                          value.isEmpty) {
+                                      if (value == null || value.isEmpty) {
                                         return 'Confirma tu contraseña.';
                                       }
 
-                                      if (value !=
-                                          _contrasenaController.text) {
+                                      if (value != _contrasenaController.text) {
                                         return 'Las contraseñas no coinciden.';
                                       }
 
@@ -1299,13 +1247,10 @@ class _RegistroPageState extends State<RegistroPage>
                                 Row(
                                   children: [
                                     const Expanded(
-                                      child: Divider(
-                                        color: Color(0x55476B8B),
-                                      ),
+                                      child: Divider(color: Color(0x55476B8B)),
                                     ),
                                     Padding(
-                                      padding:
-                                          const EdgeInsets.symmetric(
+                                      padding: const EdgeInsets.symmetric(
                                         horizontal: 10,
                                       ),
                                       child: Text(
@@ -1321,23 +1266,18 @@ class _RegistroPageState extends State<RegistroPage>
                                       ),
                                     ),
                                     const Expanded(
-                                      child: Divider(
-                                        color: Color(0x55476B8B),
-                                      ),
+                                      child: Divider(color: Color(0x55476B8B)),
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 5),
                                 TextButton(
-                                  onPressed: _procesando ||
-                                          _procesandoBiometria
+                                  onPressed: _procesando || _procesandoBiometria
                                       ? null
                                       : _alternarFormulario,
                                   style: TextButton.styleFrom(
-                                    foregroundColor:
-                                        const Color(0xFF245C91),
-                                    padding:
-                                        const EdgeInsets.symmetric(
+                                    foregroundColor: const Color(0xFF245C91),
+                                    padding: const EdgeInsets.symmetric(
                                       horizontal: 14,
                                       vertical: 11,
                                     ),
@@ -1353,25 +1293,23 @@ class _RegistroPageState extends State<RegistroPage>
                                   ),
                                 ),
                                 const SizedBox(height: 5),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.center,
+                                Wrap(
+                                  alignment: WrapAlignment.center,
+                                  spacing: 6,
                                   children: [
                                     Icon(
                                       Icons.shield_outlined,
                                       size: 14,
-                                      color: _textoSecundario
-                                          .withValues(alpha: 0.85),
+                                      color: _textoSecundario.withValues(
+                                        alpha: 0.85,
+                                      ),
                                     ),
-                                    const SizedBox(width: 6),
-                                    const Flexible(
-                                      child: Text(
-                                        'Acceso protegido desde tu dispositivo',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          color: _textoSecundario,
-                                          fontSize: 10,
-                                        ),
+                                    const Text(
+                                      'Acceso protegido desde tu dispositivo',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: _textoSecundario,
+                                        fontSize: 10,
                                       ),
                                     ),
                                   ],
@@ -1387,10 +1325,7 @@ class _RegistroPageState extends State<RegistroPage>
               ),
             ),
           ),
-          Positioned(
-            top: 0,
-            child: _avatar(),
-          ),
+          Positioned(top: 0, child: _avatar()),
         ],
       ),
     );
@@ -1415,11 +1350,7 @@ class _RegistroPageState extends State<RegistroPage>
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFB4F6FF),
-              Color(0xFF55BDF4),
-              Color(0xFF3866D8),
-            ],
+            colors: [Color(0xFFB4F6FF), Color(0xFF55BDF4), Color(0xFF3866D8)],
           ),
           border: Border.all(
             color: Colors.white.withValues(alpha: 0.96),
@@ -1465,6 +1396,7 @@ class _RegistroPageState extends State<RegistroPage>
     required String? Function(String?) validator,
     TextInputType keyboardType = TextInputType.text,
     TextInputAction textInputAction = TextInputAction.next,
+    TextCapitalization textCapitalization = TextCapitalization.none,
     bool obscure = false,
     List<String>? autofillHints,
     Widget? suffix,
@@ -1474,7 +1406,7 @@ class _RegistroPageState extends State<RegistroPage>
       controller: controller,
       keyboardType: keyboardType,
       textInputAction: textInputAction,
-      textCapitalization: TextCapitalization.none,
+      textCapitalization: textCapitalization,
       autofillHints: autofillHints,
       autocorrect: false,
       obscureText: obscure,
@@ -1511,14 +1443,8 @@ class _RegistroPageState extends State<RegistroPage>
         ),
         border: _bordeCampo(),
         enabledBorder: _bordeCampo(),
-        focusedBorder: _bordeCampo(
-          color: const Color(0xFF3A9FE0),
-          width: 1.7,
-        ),
-        errorBorder: _bordeCampo(
-          color: const Color(0xFFB34B62),
-          width: 1.2,
-        ),
+        focusedBorder: _bordeCampo(color: const Color(0xFF3A9FE0), width: 1.7),
+        errorBorder: _bordeCampo(color: const Color(0xFFB34B62), width: 1.2),
         focusedErrorBorder: _bordeCampo(
           color: const Color(0xFFB34B62),
           width: 1.2,
@@ -1551,10 +1477,7 @@ class _RegistroPageState extends State<RegistroPage>
           isExpanded: true,
           icon: const Icon(Icons.expand_more_rounded),
           dropdownColor: const Color(0xFFEAF4FB),
-          style: const TextStyle(
-            color: _textoOscuro,
-            fontSize: 13,
-          ),
+          style: const TextStyle(color: _textoOscuro, fontSize: 13),
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.badge_outlined, size: 20),
             filled: true,
@@ -1573,10 +1496,8 @@ class _RegistroPageState extends State<RegistroPage>
           ),
           items: _tiposUsuario
               .map(
-                (tipo) => DropdownMenuItem<String>(
-                  value: tipo,
-                  child: Text(tipo),
-                ),
+                (tipo) =>
+                    DropdownMenuItem<String>(value: tipo, child: Text(tipo)),
               )
               .toList(),
           onChanged: _procesando
@@ -1596,56 +1517,57 @@ class _RegistroPageState extends State<RegistroPage>
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         color: Colors.white.withValues(alpha: 0.35),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.78),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.78)),
       ),
-      child: CheckboxListTile(
-        value: _biometriaActivada,
-        onChanged: !_biometriaMovilDisponible ||
-                _procesando ||
-                _procesandoBiometria
-            ? null
-            : (value) {
-                if (value != null) {
-                  _cambiarAccesoBiometrico(value);
-                }
-              },
-        activeColor: const Color(0xFF287DCA),
-        checkColor: Colors.white,
-        controlAffinity: ListTileControlAffinity.trailing,
-        secondary: _procesandoBiometria
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(
-                Icons.fingerprint_rounded,
-                color: Color(0xFF315C7D),
-                size: 28,
-              ),
-        title: const Text(
-          'Activar datos biométricos',
-          style: TextStyle(
-            color: _textoOscuro,
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: CheckboxListTile(
+          value: _biometriaActivada,
+          onChanged:
+              !_biometriaMovilDisponible || _procesando || _procesandoBiometria
+              ? null
+              : (value) {
+                  if (value != null) {
+                    _cambiarAccesoBiometrico(value);
+                  }
+                },
+          activeColor: const Color(0xFF287DCA),
+          checkColor: Colors.white,
+          controlAffinity: ListTileControlAffinity.trailing,
+          secondary: _procesandoBiometria
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(
+                  Icons.fingerprint_rounded,
+                  color: Color(0xFF315C7D),
+                  size: 28,
+                ),
+          title: const Text(
+            'Activar datos biométricos',
+            style: TextStyle(
+              color: _textoOscuro,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-        ),
-        subtitle: const Text(
-          'Usa la huella o el reconocimiento facial de tu teléfono.',
-          style: TextStyle(
-            color: _textoSecundario,
-            fontSize: 10,
-            height: 1.4,
+          subtitle: const Text(
+            'Usa la huella o el reconocimiento facial de tu teléfono.',
+            style: TextStyle(
+              color: _textoSecundario,
+              fontSize: 10,
+              height: 1.4,
+            ),
           ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 7,
+          ),
+          visualDensity: VisualDensity.compact,
         ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 7,
-        ),
-        visualDensity: VisualDensity.compact,
       ),
     );
   }
@@ -1654,9 +1576,8 @@ class _RegistroPageState extends State<RegistroPage>
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton.icon(
-        onPressed: !_biometriaMovilDisponible ||
-                _procesando ||
-                _procesandoBiometria
+        onPressed:
+            !_biometriaMovilDisponible || _procesando || _procesandoBiometria
             ? null
             : _iniciarSesionBiometrico,
         icon: _procesandoBiometria
@@ -1680,17 +1601,11 @@ class _RegistroPageState extends State<RegistroPage>
             color: const Color(0xFF315C85).withValues(alpha: 0.40),
           ),
           minimumSize: const Size.fromHeight(50),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 12,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(25),
           ),
-          textStyle: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-          ),
+          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
         ),
       ),
     );
@@ -1698,9 +1613,7 @@ class _RegistroPageState extends State<RegistroPage>
 
   Widget _botonMostrarContrasena() {
     return IconButton(
-      tooltip: _mostrarContrasena
-          ? 'Ocultar contraseña'
-          : 'Mostrar contraseña',
+      tooltip: _mostrarContrasena ? 'Ocultar contraseña' : 'Mostrar contraseña',
       onPressed: () {
         setState(() {
           _mostrarContrasena = !_mostrarContrasena;
@@ -1724,9 +1637,7 @@ class _RegistroPageState extends State<RegistroPage>
           ? Icons.person_add_alt_1_rounded
           : Icons.login_rounded,
       cargando: _procesando,
-      onTap: _procesando || _procesandoBiometria
-          ? null
-          : _iniciarSesion,
+      onTap: _procesando || _procesandoBiometria ? null : _iniciarSesion,
     );
   }
 
@@ -1754,11 +1665,7 @@ class _RegistroPageState extends State<RegistroPage>
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF8AF0FF),
-              Color(0xFF45BDF3),
-              Color(0xFF426DE4),
-            ],
+            colors: [Color(0xFF8AF0FF), Color(0xFF45BDF3), Color(0xFF426DE4)],
           ),
           border: Border.all(
             color: Colors.white.withValues(alpha: 0.74),
@@ -1793,11 +1700,7 @@ class _RegistroPageState extends State<RegistroPage>
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          icono,
-                          color: Colors.white,
-                          size: 19,
-                        ),
+                        Icon(icono, color: Colors.white, size: 19),
                         const SizedBox(width: 9),
                         Text(
                           texto,

@@ -95,6 +95,37 @@ void main() {
     });
   }
 
+  for (final devicePixelRatio in <double>[1, 2, 3]) {
+    testWidgets(
+      'cursos libres conserva el layout a densidad $devicePixelRatio y texto ampliado',
+      (WidgetTester tester) async {
+        const logicalSize = Size(360, 800);
+        tester.view.devicePixelRatio = devicePixelRatio;
+        tester.view.physicalSize = Size(
+          logicalSize.width * devicePixelRatio,
+          logicalSize.height * devicePixelRatio,
+        );
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: const CursosLibresCatalogoPage(),
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: const TextScaler.linear(1.5)),
+              child: child!,
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 700));
+
+        expect(tester.getSize(find.byType(Scaffold)).width, logicalSize.width);
+        expectNoLayoutException(tester);
+      },
+    );
+  }
+
   for (final size in <Size>[
     const Size(280, 600),
     const Size(320, 568),
@@ -117,7 +148,9 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(const MaterialApp(home: CursosLibresCatalogoPage()));
+      await tester.pumpWidget(
+        const MaterialApp(home: CursosLibresCatalogoPage()),
+      );
       await tester.pump(const Duration(milliseconds: 700));
       expectNoLayoutException(tester);
     });
@@ -339,7 +372,9 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetDisplayFeatures);
 
-    await tester.pumpWidget(const MaterialApp(home: CursosLibresCatalogoPage()));
+    await tester.pumpWidget(
+      const MaterialApp(home: CursosLibresCatalogoPage()),
+    );
     await tester.pump(const Duration(milliseconds: 700));
 
     final excel = tester.getRect(
@@ -389,4 +424,28 @@ void main() {
       expectNoLayoutException(tester);
     },
   );
+
+  testWidgets('perfil maneja Firebase no configurado sin lanzar errores', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: PerfilPage()));
+    expect(find.text('Inicia sesión para ver tu información'), findsOneWidget);
+    expect(find.text('Estudiante · Tecnológico de Costa Rica'), findsNothing);
+
+    await tester.tap(find.text('Información personal'));
+    await tester.pump();
+    expect(
+      find.text('Firebase no está disponible en este momento.'),
+      findsOneWidget,
+    );
+
+    await tester.pump(const Duration(seconds: 5));
+    await tester.tap(find.text('Seguridad de la cuenta'));
+    await tester.pump();
+    expect(
+      find.text('Firebase no está disponible en este momento.'),
+      findsOneWidget,
+    );
+    expectNoLayoutException(tester);
+  });
 }
