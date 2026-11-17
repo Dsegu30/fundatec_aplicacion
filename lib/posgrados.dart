@@ -70,12 +70,15 @@ class _PosgradosPageState extends State<PosgradosPage> {
     return switch (posgrado.programa) {
       _TipoPosgrado.doctoradoIngenieria => PosgradoDetallePage(
         titulo: posgrado.titulo,
-        descripcion: posgrado.descripcion,
-        aspectos: const [
+        resumenHero: posgrado.descripcion,
+        enfoque: posgrado.descripcion,
+        areas: const [
           'Consulta con la coordinación las líneas de investigación y el proceso de admisión.',
           'Solicita información actualizada sobre requisitos, duración y modalidad.',
         ],
-        imagen: posgrado.imagen,
+        idealPara:
+            'Personas interesadas en desarrollar investigación avanzada en '
+            'el campo de la ingeniería.',
         colores: posgrado.colores,
       ),
       _TipoPosgrado.calidadAcademica => const MaestriaCalidadAcademicaPage(),
@@ -186,10 +189,12 @@ class _PosgradosPageState extends State<PosgradosPage> {
                               gridTopInset -
                               gridBottomInset -
                               rowSpacing * (rowCount - 1);
-                          final cardHeight = math.max(
-                            minimumCardHeight,
-                            availableCardSpace / rowCount,
-                          ).toDouble();
+                          final cardHeight = math
+                              .max(
+                                minimumCardHeight,
+                                availableCardSpace / rowCount,
+                              )
+                              .toDouble();
 
                           return SingleChildScrollView(
                             physics: const BouncingScrollPhysics(),

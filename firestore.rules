@@ -2,6 +2,11 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    match /anuncios/{anuncioId} {
+      allow read: if resource.data.estado == 'publicado';
+      allow create, update, delete: if false;
+    }
+
     match /usuarios/{uid} {
       allow create: if request.auth != null
         && request.auth.uid == uid

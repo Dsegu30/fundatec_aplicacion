@@ -126,6 +126,38 @@ void main() {
     );
   }
 
+  testWidgets('posgrados y sus fichas se adaptan a texto ampliado', (
+    WidgetTester tester,
+  ) async {
+    const logicalSize = Size(360, 800);
+    tester.view.physicalSize = logicalSize;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    Widget buildWithLargeText(Widget child) {
+      return MaterialApp(
+        home: child,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(1.5)),
+          child: child!,
+        ),
+      );
+    }
+
+    await tester.pumpWidget(buildWithLargeText(const PosgradosPage()));
+    await tester.pump(const Duration(milliseconds: 700));
+    expectNoLayoutException(tester);
+
+    await tester.pumpWidget(
+      buildWithLargeText(const MaestriaCalidadProfesionalPage()),
+    );
+    await tester.pump(const Duration(milliseconds: 700));
+    expectNoLayoutException(tester);
+  });
+
   for (final size in <Size>[
     const Size(280, 600),
     const Size(320, 568),

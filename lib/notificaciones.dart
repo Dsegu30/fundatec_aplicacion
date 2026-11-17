@@ -8,8 +8,8 @@ import 'navegacion_glass.dart';
 import 'perfil.dart';
 import 'responsive_layout.dart';
 
-const Color _azulTec = Color(0xFF083D91);
-const Color _azulBrillante = Color(0xFF3478F6);
+const Color _azulTec = Color(0xFF2868ED);
+const Color _azulBrillante = Color(0xFF0EA5E9);
 const Color _azulClaro = Color(0xFF80B8FF);
 
 class NotificacionesScreen extends StatefulWidget {
@@ -804,22 +804,29 @@ class _TarjetaAvisoState extends State<_TarjetaAviso>
                         children: [
                           Row(
                             children: [
-                              Expanded(
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: aviso.color.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                                 child: Text(
-                                  aviso.titulo,
+                                  aviso.categoria,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    color: theme.colorScheme.onSurface,
-                                    fontSize: 14,
-                                    fontWeight: aviso.leido
-                                        ? FontWeight.w600
-                                        : FontWeight.w800,
+                                    color: aviso.color,
+                                    fontSize: 9,
+                                    letterSpacing: 0.25,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ),
-                              if (!aviso.leido) ...[
-                                const SizedBox(width: 6),
+                              const Spacer(),
+                              if (!aviso.leido)
                                 Container(
                                   width: 7,
                                   height: 7,
@@ -828,8 +835,20 @@ class _TarjetaAvisoState extends State<_TarjetaAviso>
                                     shape: BoxShape.circle,
                                   ),
                                 ),
-                              ],
                             ],
+                          ),
+                          const SizedBox(height: 7),
+                          Text(
+                            aviso.titulo,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurface,
+                              fontSize: 14,
+                              fontWeight: aviso.leido
+                                  ? FontWeight.w600
+                                  : FontWeight.w800,
+                            ),
                           ),
                           const SizedBox(height: 6),
                           Text(

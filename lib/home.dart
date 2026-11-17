@@ -7,29 +7,35 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+
 import 'firebase_options.dart';
+
 import 'dart:async';
+
 import 'package:app_links/app_links.dart';
 
 import 'app_theme.dart';
 import 'calendario.dart';
 import 'perfil.dart';
 import 'notificaciones.dart';
+import 'noticias.dart';
 import 'tecnicos.dart';
 import 'licenciatura.dart';
 import 'posgrados.dart';
 import 'navegacion_glass.dart';
 import 'responsive_layout.dart';
 import 'cursos_libres.dart';
+import 'curso_detalle.dart';
 import 'especialidades.dart';
+import 'especialidad_detalle.dart';
 import 'registro.dart' as registro;
+import 'posgrados_detalle.dart';
+import 'tecnico_detalle.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -42,6 +48,7 @@ Future<void> main() async {
 
   runApp(const TecApp());
 }
+
 class TecApp extends StatefulWidget {
   const TecApp({super.key, this.onLogout});
 
@@ -54,13 +61,13 @@ class TecApp extends StatefulWidget {
 class _TecAppState extends State<TecApp> {
   static const String _themeModeKey = 'app_theme_mode';
   final AppLinks _appLinks = AppLinks();
-StreamSubscription<Uri>? _enlacesSubscription;
+  StreamSubscription<Uri>? _enlacesSubscription;
 
-@override
-void dispose() {
-  _enlacesSubscription?.cancel();
-  super.dispose();
-}
+  @override
+  void dispose() {
+    _enlacesSubscription?.cancel();
+    super.dispose();
+  }
 
   ThemeMode _themeMode = ThemeMode.light;
   bool _mostrarRegistro = true;
@@ -135,74 +142,71 @@ void dispose() {
         );
     }
   }
+
   Future<void> _iniciarEscuchaEnlaces() async {
-  _enlacesSubscription = _appLinks.uriLinkStream.listen(
-    (uri) {
-      _procesarEnlaceVerificacion(uri);
-    },
-    onError: (Object error) {
-      debugPrint('Error al recibir el enlace: $error');
-    },
-  );
-
-  try {
-    final enlaceInicial = await _appLinks.getInitialLink();
-
-    if (enlaceInicial != null) {
-      await _procesarEnlaceVerificacion(enlaceInicial);
-    }
-  } catch (error) {
-    debugPrint('Error al recuperar el enlace inicial: $error');
-  }
-}
-
-Future<void> _procesarEnlaceVerificacion(Uri uri) async {
-  try {
-    var enlace = uri;
-
-    // Algunos enlaces pueden contener el enlace de acción
-    // dentro de los parámetros continueUrl o link.
-    for (var i = 0; i < 2; i++) {
-      final anidado =
-          enlace.queryParameters['continueUrl'] ??
-          enlace.queryParameters['link'];
-
-      if (anidado == null || anidado.isEmpty) break;
-
-      final siguiente = Uri.tryParse(anidado);
-      if (siguiente == null) break;
-
-      enlace = siguiente;
-    }
-
-    final modo = enlace.queryParameters['mode'];
-    final codigo = enlace.queryParameters['oobCode'];
-
-    if (modo != 'verifyEmail' ||
-        codigo == null ||
-        codigo.isEmpty) {
-      return;
-    }
-
-    await FirebaseAuth.instance.applyActionCode(codigo);
-
-    await FirebaseAuth.instance.signOut();
-
-    if (!mounted) return;
-
-    setState(() {
-      _mostrarRegistro = true;
-    });
-
-    debugPrint('Correo verificado correctamente.');
-  } on FirebaseAuthException catch (error) {
-    debugPrint(
-      'No se pudo verificar el correo: ${error.code}',
+    _enlacesSubscription = _appLinks.uriLinkStream.listen(
+      (uri) {
+        _procesarEnlaceVerificacion(uri);
+      },
+      onError: (Object error) {
+        debugPrint('Error al recibir el enlace: $error');
+      },
     );
-  } catch (error) {
-    debugPrint('Error procesando la verificación: $error');
+
+    try {
+      final enlaceInicial = await _appLinks.getInitialLink();
+
+      if (enlaceInicial != null) {
+        await _procesarEnlaceVerificacion(enlaceInicial);
+      }
+    } catch (error) {
+      debugPrint('Error al recuperar el enlace inicial: $error');
+    }
   }
-}
+
+  Future<void> _procesarEnlaceVerificacion(Uri uri) async {
+    try {
+      var enlace = uri;
+
+      // Algunos enlaces pueden contener el enlace de acción
+      // dentro de los parámetros continueUrl o link.
+      for (var i = 0; i < 2; i++) {
+        final anidado =
+            enlace.queryParameters['continueUrl'] ??
+            enlace.queryParameters['link'];
+
+        if (anidado == null || anidado.isEmpty) break;
+
+        final siguiente = Uri.tryParse(anidado);
+        if (siguiente == null) break;
+
+        enlace = siguiente;
+      }
+
+      final modo = enlace.queryParameters['mode'];
+      final codigo = enlace.queryParameters['oobCode'];
+
+      if (modo != 'verifyEmail' || codigo == null || codigo.isEmpty) {
+        return;
+      }
+
+      await FirebaseAuth.instance.applyActionCode(codigo);
+
+      await FirebaseAuth.instance.signOut();
+
+      if (!mounted) return;
+
+      setState(() {
+        _mostrarRegistro = true;
+      });
+
+      debugPrint('Correo verificado correctamente.');
+    } on FirebaseAuthException catch (error) {
+      debugPrint('No se pudo verificar el correo: ${error.code}');
+    } catch (error) {
+      debugPrint('Error procesando la verificación: $error');
+    }
+  }
 
   Future<void> _cerrarSesion() async {
     final onLogout = widget.onLogout;
@@ -256,9 +260,7 @@ Future<void> _procesarEnlaceVerificacion(Uri uri) async {
           );
         },
         home: _mostrarRegistro
-            ? registro.RegistroPage(
-                onRegistrationComplete: _registroCompletado,
-              )
+            ? registro.RegistroPage(onRegistrationComplete: _registroCompletado)
             : TecHomeScreen(onLogout: _cerrarSesion),
       ),
     );
@@ -323,8 +325,6 @@ class _TecHomeScreenState extends State<TecHomeScreen>
   static const Color accentPurple = Color(0xFF6366F1);
   static const Color alertRed = Color(0xFFEF4444);
 
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
   final ScrollController _homeScrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
@@ -344,7 +344,31 @@ class _TecHomeScreenState extends State<TecHomeScreen>
       subtitle: 'Control, mejora y aseguramiento de la calidad industrial.',
       icon: Icons.verified_outlined,
       category: 'Académico',
-      onTap: _openTecnicos,
+      onTap: () => _navigateToPage(
+        (_) => const TecnicoDetallePage(programa: ProgramaTecnico.calidad),
+      ),
+    ),
+    AppSearchItem(
+      title: 'Técnico en Logística e Inventarios',
+      subtitle: 'Organización, almacenamiento y control de inventarios.',
+      icon: Icons.inventory_2_outlined,
+      category: 'Académico',
+      onTap: () => _navigateToPage(
+        (_) => const TecnicoDetallePage(
+          programa: ProgramaTecnico.logisticaInventarios,
+        ),
+      ),
+    ),
+    AppSearchItem(
+      title: 'Técnico en Supervisión de Producción',
+      subtitle: 'Supervisión y optimización de procesos productivos.',
+      icon: Icons.precision_manufacturing_outlined,
+      category: 'Académico',
+      onTap: () => _navigateToPage(
+        (_) => const TecnicoDetallePage(
+          programa: ProgramaTecnico.supervisionProduccion,
+        ),
+      ),
     ),
     AppSearchItem(
       title: 'Licenciatura Industrial',
@@ -354,11 +378,253 @@ class _TecHomeScreenState extends State<TecHomeScreen>
       onTap: _openLicenciatura,
     ),
     AppSearchItem(
+      title: 'Doctorado Académico en Ingeniería',
+      subtitle: 'Investigación avanzada y desarrollo de conocimiento técnico.',
+      icon: Icons.engineering_outlined,
+      category: 'Posgrado',
+      onTap: () => _navigateToPage(
+        (_) => const PosgradoDetallePage(
+          titulo: 'Doctorado Académico en Ingeniería',
+          resumenHero:
+              'Investigación avanzada para generar conocimiento y aportar '
+              'soluciones innovadoras en ingeniería.',
+          enfoque:
+              'Desarrolla investigación avanzada, genera conocimiento y '
+              'aporta soluciones innovadoras en el campo de la ingeniería.',
+          areas: [
+            'Consulta con la coordinación las líneas de investigación y el '
+                'proceso de admisión.',
+            'Solicita información actualizada sobre requisitos, duración y '
+                'modalidad.',
+          ],
+          idealPara:
+              'Personas interesadas en desarrollar investigación avanzada en '
+              'el campo de la ingeniería.',
+          colores: [Color(0xFF102A43), Color(0xFF176B87)],
+        ),
+      ),
+    ),
+    AppSearchItem(
+      title: 'Maestría en Calidad Académica',
+      subtitle: 'Estudio de modelos, instrumentos y estrategias de calidad.',
+      icon: Icons.school_outlined,
+      category: 'Posgrado',
+      onTap: () => _navigateToPage((_) => const MaestriaCalidadAcademicaPage()),
+    ),
+    AppSearchItem(
+      title: 'Maestría en Calidad Profesional',
+      subtitle:
+          'Gestión de la calidad orientada a resultados y mejora continua.',
+      icon: Icons.fact_check_outlined,
+      category: 'Posgrado',
+      onTap: () =>
+          _navigateToPage((_) => const MaestriaCalidadProfesionalPage()),
+    ),
+    AppSearchItem(
+      title: 'Maestría en Cadena de Abastecimiento',
+      subtitle: 'Logística, planificación y gestión eficiente de la cadena.',
+      icon: Icons.local_shipping_outlined,
+      category: 'Posgrado',
+      onTap: () =>
+          _navigateToPage((_) => const MaestriaCadenaAbastecimientoPage()),
+    ),
+    AppSearchItem(
+      title: 'Maestría en Sistemas Modernos de Manufactura',
+      subtitle: 'Automatización y optimización de procesos de manufactura.',
+      icon: Icons.precision_manufacturing_outlined,
+      category: 'Posgrado',
+      onTap: () => _navigateToPage(
+        (_) => const MaestriaSistemasModernosManufacturaPage(),
+      ),
+    ),
+    AppSearchItem(
       title: 'Posgrados Industrial',
       subtitle: 'Programas de posgrado especializados para ingenieros.',
       icon: Icons.school_outlined,
       category: 'Académico',
       onTap: _openPosgrados,
+    ),
+    AppSearchItem(
+      title: 'Cursos Libres',
+      subtitle: 'Cursos para ampliar tus conocimientos y habilidades.',
+      icon: Icons.menu_book_rounded,
+      category: 'Académico',
+      onTap: _openCursosLibres,
+    ),
+    AppSearchItem(
+      title: 'Excel',
+      subtitle:
+          'Herramientas digitales para organización, fórmulas y análisis.',
+      icon: Icons.table_chart_rounded,
+      category: 'Curso',
+      onTap: () => _openCursoLibre('excel-avanzado-ii'),
+    ),
+    AppSearchItem(
+      title: 'Power BI',
+      subtitle: 'Dashboards y análisis de datos para la toma de decisiones.',
+      icon: Icons.bar_chart_rounded,
+      category: 'Curso',
+      onTap: () => _openCursoLibre('power-bi-produccion-calidad'),
+    ),
+    AppSearchItem(
+      title: 'Minitab',
+      subtitle: 'Estadística aplicada para análisis y mejora de procesos.',
+      icon: Icons.analytics_rounded,
+      category: 'Curso',
+      onTap: () => _openCursoLibre('minitab'),
+    ),
+    AppSearchItem(
+      title: 'Gerencia de Proyectos',
+      subtitle: 'Planificación, ejecución y seguimiento de proyectos.',
+      icon: Icons.account_tree_rounded,
+      category: 'Curso',
+      onTap: () => _openCursoLibre('fundamentos-gerencia-proyectos'),
+    ),
+    AppSearchItem(
+      title: 'Caracterización y Análisis de Fallas',
+      subtitle: 'Identificación de fallas y acciones correctivas en procesos.',
+      icon: Icons.troubleshoot_rounded,
+      category: 'Curso',
+      onTap: () => _openCursoLibre('caracterizacion-analisis-fallas'),
+    ),
+    AppSearchItem(
+      title: 'Normas ISO 14001, 45001 y 50001',
+      subtitle: 'Gestión ambiental, seguridad y energía en la organización.',
+      icon: Icons.verified_user_outlined,
+      category: 'Curso',
+      onTap: () => _openCursoLibre('normas-iso-14001-45001-50001'),
+    ),
+    AppSearchItem(
+      title: 'Servicio al Cliente',
+      subtitle: 'Mejora de la comunicación y atención al usuario.',
+      icon: Icons.support_agent_rounded,
+      category: 'Curso',
+      onTap: () => _openCursoLibre('introduccion-servicio-cliente'),
+    ),
+    AppSearchItem(
+      title: 'Habilidades Blandas',
+      subtitle: 'Comunicación, liderazgo y adaptación interpersonal.',
+      icon: Icons.groups_rounded,
+      category: 'Curso',
+      onTap: () => _openCursoLibre('habilidades-blandas'),
+    ),
+    AppSearchItem(
+      title: 'Innovación y Cambio',
+      subtitle: 'Impulsa ideas nuevas y adapta procesos a nuevos contextos.',
+      icon: Icons.lightbulb_outline_rounded,
+      category: 'Curso',
+      onTap: () => _openCursoLibre('innovacion-cambio'),
+    ),
+    AppSearchItem(
+      title: 'Liderazgo',
+      subtitle: 'Desarrollo de equipos y toma de decisiones estratégicas.',
+      icon: Icons.workspace_premium_outlined,
+      category: 'Curso',
+      onTap: () => _openCursoLibre('liderazgo'),
+    ),
+    AppSearchItem(
+      title: 'Producción Esbelta',
+      subtitle:
+          'Optimización de procesos con enfoque en valor y productividad.',
+      icon: Icons.precision_manufacturing_outlined,
+      category: 'Curso',
+      onTap: () => _openCursoLibre('produccion-esbelta'),
+    ),
+    AppSearchItem(
+      title: 'Taller Norma 17025',
+      subtitle: 'Competencia de laboratorios de ensayo y calibración.',
+      icon: Icons.fact_check_outlined,
+      category: 'Curso',
+      onTap: () => _openCursoLibre('norma-17025'),
+    ),
+    AppSearchItem(
+      title: 'Norma ISO 37002',
+      subtitle: 'Sistemas de gestión de denuncias y respuesta institucional.',
+      icon: Icons.gpp_good_outlined,
+      category: 'Curso',
+      onTap: () => _openCursoLibre('norma-iso-37002'),
+    ),
+    AppSearchItem(
+      title: 'Eliminación de Desperdicios',
+      subtitle: 'Reducción de actividades innecesarias en los procesos.',
+      icon: Icons.delete_sweep_outlined,
+      category: 'Curso',
+      onTap: () => _openCursoLibre('eliminacion-desperdicios'),
+    ),
+    AppSearchItem(
+      title: 'Buenas Prácticas para un Ambiente Productivo y Seguro',
+      subtitle: 'Espacios de trabajo ordenados, productivos y seguros.',
+      icon: Icons.health_and_safety_outlined,
+      category: 'Curso',
+      onTap: () => _openCursoLibre('ambiente-productivo-seguro'),
+    ),
+    AppSearchItem(
+      title: 'Especialidades Industriales',
+      subtitle: 'Conoce las opciones de formación industrial.',
+      icon: Icons.engineering_rounded,
+      category: 'Académico',
+      onTap: _openEspecialidades,
+    ),
+    AppSearchItem(
+      title: 'Auditoría de calidad',
+      subtitle: 'Evaluación de procesos y cumplimiento de estándares.',
+      icon: Icons.fact_check_outlined,
+      category: 'Especialidad',
+      onTap: () => _openEspecialidad(
+        titulo: 'Auditoría de calidad',
+        descripcion:
+            'Busca decretar si lo pactado se está cumpliendo, evaluar '
+            'procedimientos para ver si reúnen las condiciones escritas y '
+            'las condiciones de calidad.',
+        imagen: 'https://images.unsplash.com/photo-1581092921461-eab62e97a780?auto=format&fit=crop&w=1500&q=92',
+        colores: const [Color(0xFF162D3D), Color(0xFF247B87)],
+      ),
+    ),
+    AppSearchItem(
+      title: 'Estadística Experimental',
+      subtitle: 'Análisis de datos para toma de decisiones y mejora continua.',
+      icon: Icons.query_stats_rounded,
+      category: 'Especialidad',
+      onTap: () => _openEspecialidad(
+        titulo: 'Estadística Experimental',
+        descripcion:
+            'Examina datos en bruto con el propósito de sacar conclusiones '
+            'sobre la información y es usado en varias industrias para '
+            'permitir la toma de mejores decisiones empresariales.',
+        imagen: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1500&q=92',
+        colores: const [Color(0xFF28345E), Color(0xFF6656A6)],
+      ),
+    ),
+    AppSearchItem(
+      title: 'Seis Sigma Yellow Belt',
+      subtitle:
+          'Herramientas estadísticas para reducir variabilidad del proceso.',
+      icon: Icons.auto_graph_rounded,
+      category: 'Especialidad',
+      onTap: () => _openEspecialidad(
+        titulo: 'Seis Sigma Yellow Belt',
+        descripcion:
+            'Utiliza un conjunto de herramientas estadísticas que buscan '
+            'reducir la variabilidad de los procesos dando prioridad a los '
+            'requisitos de los clientes.',
+        imagen: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1500&q=92',
+        colores: const [Color(0xFF123B59), Color(0xFF167D9A)],
+      ),
+    ),
+    AppSearchItem(
+      title: 'Metrología',
+      subtitle: 'Aplicación de conceptos de medición y control dimensional.',
+      icon: Icons.precision_manufacturing_outlined,
+      category: 'Especialidad',
+      onTap: () => _openEspecialidad(
+        titulo: 'Metrología',
+        descripcion:
+            'Aplica los conceptos de la teoría de la medición que son '
+            'esenciales en el desarrollo de un eficiente y efectivo sistema '
+            'metrológico.',
+        imagen: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1500&q=92',
+        colores: const [Color(0xFF183344), Color(0xFF347F8C)],
+      ),
     ),
     AppSearchItem(
       title: 'Calendario Académico',
@@ -372,7 +638,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
       subtitle: 'Entérate de los últimos acontecimientos institucionales.',
       icon: Icons.newspaper_rounded,
       category: 'Sección',
-      onTap: () => _navigateToSection(2),
+      onTap: _openNews,
     ),
     AppSearchItem(
       title: 'Recursos Estudiantiles',
@@ -394,20 +660,6 @@ class _TecHomeScreenState extends State<TecHomeScreen>
       icon: Icons.engineering_outlined,
       category: 'Institucional',
       onTap: () => _showSnackbar('Información de la Escuela: próximamente'),
-    ),
-    AppSearchItem(
-      title: 'Cursos Libres',
-      subtitle: 'Cursos para ampliar tus conocimientos y habilidades.',
-      icon: Icons.menu_book_rounded,
-      category: 'Académico',
-      onTap: _openCursosLibres,
-    ),
-    AppSearchItem(
-      title: 'Especialidades Industriales',
-      subtitle: 'Conoce las opciones de formación industrial.',
-      icon: Icons.engineering_rounded,
-      category: 'Académico',
-      onTap: _openEspecialidades,
     ),
   ];
 
@@ -516,8 +768,47 @@ class _TecHomeScreenState extends State<TecHomeScreen>
   void _openCursosLibres() =>
       _navigateToPage((context) => const CursosLibresCatalogoPage());
 
+  void _openNews() => _navigateToPage((_) => const NoticiasPage());
+
+  void _openCursoLibre(String id) => _navigateToPage(
+    (_) => CursoDetallePage(curso: CursosLibresCatalogoPage.detallePorId(id)),
+  );
+
   void _openEspecialidades() =>
       _navigateToPage((context) => const EspecialidadesIndustrialesPage());
+
+  void _openEspecialidad({
+    required String titulo,
+    required String descripcion,
+    required String imagen,
+    required List<Color> colores,
+  }) => _navigateToPage(
+    (_) => EspecialidadDetallePage(
+      titulo: titulo,
+      descripcion: descripcion,
+      imagen: imagen,
+      colores: colores,
+    ),
+  );
+
+  bool _matchesSearchItem(AppSearchItem item, String query) {
+    final normalizedQuery = query.toLowerCase();
+    return item.title.toLowerCase().contains(normalizedQuery) ||
+        item.subtitle.toLowerCase().contains(normalizedQuery) ||
+        item.category.toLowerCase().contains(normalizedQuery);
+  }
+
+  void _submitSearch(String query) {
+    final normalizedQuery = query.trim();
+    if (normalizedQuery.isEmpty) return;
+
+    for (final item in _searchItems) {
+      if (_matchesSearchItem(item, normalizedQuery)) {
+        item.onTap();
+        return;
+      }
+    }
+  }
 
   void _goHome() {
     HapticFeedback.selectionClick();
@@ -612,10 +903,6 @@ class _TecHomeScreenState extends State<TecHomeScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: _scaffoldKey,
-      drawer: _buildFloatingDrawer(),
-      drawerScrimColor: primaryNavy.withValues(alpha: 0.48),
-      drawerEdgeDragWidth: 24,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         bottom: false,
@@ -633,13 +920,9 @@ class _TecHomeScreenState extends State<TecHomeScreen>
 
             final sideBySideCards = width >= 900;
 
-            final filteredItems = _searchItems.where((item) {
-              final query = _searchQuery.toLowerCase();
-
-              return item.title.toLowerCase().contains(query) ||
-                  item.subtitle.toLowerCase().contains(query) ||
-                  item.category.toLowerCase().contains(query);
-            }).toList();
+            final filteredItems = _searchItems
+                .where((item) => _matchesSearchItem(item, _searchQuery))
+                .toList();
 
             return FadeTransition(
               opacity: _fadeAnimation,
@@ -664,10 +947,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                             layoutBuilder: (currentChild, previousChildren) {
                               return Stack(
                                 alignment: Alignment.topCenter,
-                                children: [
-                                  ...previousChildren,
-                                  ?currentChild,
-                                ],
+                                children: [...previousChildren, ?currentChild],
                               );
                             },
                             transitionBuilder: (child, animation) {
@@ -911,46 +1191,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          _buildLiquidGlassButton(
-                            icon: Icons.menu_rounded,
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              _scaffoldKey.currentState?.openDrawer();
-                            },
-                          ),
-                          Expanded(child: SizedBox(height: compact ? 48 : 58)),
-                          Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              _buildLiquidGlassButton(
-                                icon: Icons.notifications_none_rounded,
-                                onTap: () {
-                                  HapticFeedback.lightImpact();
-                                  _navigateToSection(2);
-                                },
-                              ),
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: Container(
-                                  width: 10,
-                                  height: 10,
-                                  decoration: BoxDecoration(
-                                    color: alertRed,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: primaryNavy,
-                                      width: 2,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                      SizedBox(height: compact ? 48 : 58),
                       SizedBox(height: compact ? 18 : 24),
                       Text(
                         'Hola, Bienvenido',
@@ -1051,10 +1292,11 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                                       Colors.white.withValues(
                                         alpha: searchActive ? 0.28 : 0.20,
                                       ),
-                                      const Color(
-                                        0xFFB8F4FF,
-                                      ).withValues(alpha: searchActive ? 0.17 : 0.11),
-                                      const Color(0xFF70CFFF).withValues(alpha: 0.09),
+                                      const Color(0xFFB8F4FF).withValues(
+                                        alpha: searchActive ? 0.17 : 0.11,
+                                      ),
+                                      const Color(0xFF70CFFF)
+                                          .withValues(alpha: 0.09),
                                     ],
                                   ),
                                   borderRadius: BorderRadius.circular(23),
@@ -1079,11 +1321,17 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                                           decoration: BoxDecoration(
                                             gradient: LinearGradient(
                                               colors: [
-                                                Colors.white.withValues(alpha: 0),
                                                 Colors.white.withValues(
-                                                  alpha: searchActive ? 0.95 : 0.70,
+                                                  alpha: 0,
                                                 ),
-                                                Colors.white.withValues(alpha: 0),
+                                                Colors.white.withValues(
+                                                  alpha: searchActive
+                                                      ? 0.95
+                                                      : 0.70,
+                                                ),
+                                                Colors.white.withValues(
+                                                  alpha: 0,
+                                                ),
                                               ],
                                             ),
                                           ),
@@ -1101,8 +1349,12 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                                             shape: BoxShape.circle,
                                             gradient: RadialGradient(
                                               colors: [
-                                                Colors.white.withValues(alpha: 0.18),
-                                                Colors.white.withValues(alpha: 0.02),
+                                                Colors.white.withValues(
+                                                  alpha: 0.18,
+                                                ),
+                                                Colors.white.withValues(
+                                                  alpha: 0.02,
+                                                ),
                                                 Colors.transparent,
                                               ],
                                             ),
@@ -1122,9 +1374,13 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                                             gradient: RadialGradient(
                                               colors: [
                                                 accentTeal.withValues(
-                                                  alpha: searchActive ? 0.28 : 0.16,
+                                                  alpha: searchActive
+                                                      ? 0.28
+                                                      : 0.16,
                                                 ),
-                                                accentTeal.withValues(alpha: 0.03),
+                                                accentTeal.withValues(
+                                                  alpha: 0.03,
+                                                ),
                                                 Colors.transparent,
                                               ],
                                             ),
@@ -1175,6 +1431,9 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                                             child: TextField(
                                               controller: _searchController,
                                               focusNode: _searchFocusNode,
+                                              textInputAction:
+                                                  TextInputAction.search,
+                                              onSubmitted: _submitSearch,
                                               style: const TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 14,
@@ -1219,7 +1478,9 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                                                   shape: BoxShape.circle,
                                                   border: Border.all(
                                                     color: Colors.white
-                                                        .withValues(alpha: 0.30),
+                                                        .withValues(
+                                                          alpha: 0.30,
+                                                        ),
                                                   ),
                                                 ),
                                                 child: const Icon(
@@ -1298,57 +1559,13 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        Positioned(
-                          left: 48,
-                          right: 48,
-                          top: 0,
-                          bottom: 0,
+                        Positioned.fill(
                           child: Image.asset(
                             'assets/images/tec_logo.png',
                             fit: BoxFit.contain,
                             filterQuality: FilterQuality.high,
                             semanticLabel: 'Tecnológico de Costa Rica',
                           ),
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            _buildLiquidGlassButton(
-                              icon: Icons.menu_rounded,
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                                _scaffoldKey.currentState?.openDrawer();
-                              },
-                            ),
-                            Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                _buildLiquidGlassButton(
-                                  icon: Icons.notifications_none_rounded,
-                                  onTap: () {
-                                    HapticFeedback.lightImpact();
-                                    _navigateToSection(2);
-                                  },
-                                ),
-                                Positioned(
-                                  top: 8,
-                                  right: 8,
-                                  child: Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                      color: alertRed,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: primaryNavy,
-                                        width: 2,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
                         ),
                       ],
                     ),
@@ -1404,6 +1621,8 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                               child: TextField(
                                 controller: _searchController,
                                 focusNode: _searchFocusNode,
+                                textInputAction: TextInputAction.search,
+                                onSubmitted: _submitSearch,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 13,
@@ -1448,32 +1667,6 @@ class _TecHomeScreenState extends State<TecHomeScreen>
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLiquidGlassButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return GelPress(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Material(
-            color: Colors.white.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(16),
-            child: InkWell(
-              onTap: onTap,
-              borderRadius: BorderRadius.circular(16),
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Icon(icon, color: Colors.white, size: 22),
-              ),
-            ),
-          ),
         ),
       ),
     );
@@ -1862,11 +2055,6 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                 HapticFeedback.selectionClick();
 
                 data.onTap?.call();
-
-
-
-
-
               },
               borderRadius: cardRadius,
               child: Container(
@@ -1935,9 +2123,15 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                               begin: Alignment.centerLeft,
                               end: Alignment.centerRight,
                               colors: [
-                                data.gradientColors.first.withValues(alpha: 0.99),
-                                data.gradientColors.first.withValues(alpha: 0.91),
-                                data.gradientColors.last.withValues(alpha: 0.48),
+                                data.gradientColors.first.withValues(
+                                  alpha: 0.99,
+                                ),
+                                data.gradientColors.first.withValues(
+                                  alpha: 0.91,
+                                ),
+                                data.gradientColors.last.withValues(
+                                  alpha: 0.48,
+                                ),
                               ],
                               stops: const [0, 0.48, 1],
                             ),
@@ -2007,7 +2201,9 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                                       height: 1.12,
                                       shadows: [
                                         Shadow(
-                                          color: Colors.black.withValues(alpha: 0.15),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.15,
+                                          ),
                                           blurRadius: 8,
                                           offset: const Offset(0, 1),
                                         ),
@@ -2020,7 +2216,9 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                                     maxLines: wide ? 3 : 2,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      color: Colors.white.withValues(alpha: 0.88),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.88,
+                                      ),
                                       fontSize: wide ? 11.5 : 11.2,
                                       height: 1.35,
                                       letterSpacing: 0.05,
@@ -2071,10 +2269,12 @@ class _TecHomeScreenState extends State<TecHomeScreen>
     final theme = Theme.of(context);
 
     const items = [
-      _QuickItem(Icons.calendar_month_rounded, 'Calendario', Color(0xFF3B82F6)),
+      _QuickItem(
+        Icons.calendar_month_rounded,
+        'Agendar cita',
+        Color(0xFF3B82F6),
+      ),
       _QuickItem(Icons.newspaper_rounded, 'Noticias', Color(0xFF10B981)),
-      _QuickItem(Icons.menu_book_rounded, 'Recursos', Color(0xFFF59E0B)),
-      _QuickItem(Icons.person_outline_rounded, 'Mi Perfil', Color(0xFF8B5CF6)),
     ];
 
     if (MediaQuery.sizeOf(context).width < 520) {
@@ -2095,11 +2295,11 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                     HapticFeedback.selectionClick();
 
                     switch (items[i].label) {
-                      case 'Calendario':
+                      case 'Agendar cita':
                         _openCalendar();
                         break;
-                      case 'Mi Perfil':
-                        _navigateToSection(3);
+                      case 'Noticias':
+                        _openNews();
                         break;
                       default:
                         _showSnackbar('${items[i].label}: próximamente');
@@ -2182,11 +2382,11 @@ class _TecHomeScreenState extends State<TecHomeScreen>
               HapticFeedback.selectionClick();
 
               switch (item.label) {
-                case 'Calendario':
+                case 'Agendar cita':
                   _openCalendar();
                   break;
-                case 'Mi Perfil':
-                  _navigateToSection(3);
+                case 'Noticias':
+                  _openNews();
                   break;
                 default:
                   _showSnackbar(item.label);
@@ -2231,18 +2431,11 @@ class _TecHomeScreenState extends State<TecHomeScreen>
       );
     }
 
-    return Column(
+    return Row(
       children: [
-        for (var row = 0; row < 2; row++) ...[
-          if (row > 0) const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: card(items[row * 2])),
-              const SizedBox(width: 12),
-              Expanded(child: card(items[row * 2 + 1])),
-            ],
-          ),
-        ],
+        Expanded(child: card(items[0])),
+        const SizedBox(width: 12),
+        Expanded(child: card(items[1])),
       ],
     );
   }
@@ -2375,305 +2568,6 @@ class _TecHomeScreenState extends State<TecHomeScreen>
           _navigateToSection(index);
         }
       },
-    );
-  }
-
-  // ==========================================================
-  // MENÚ LATERAL FLOTANTE
-  // ==========================================================
-
-  Widget _buildFloatingDrawer() {
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final drawerWidth = math.min(screenWidth * 0.82, 340.0);
-
-    return Drawer(
-      width: drawerWidth,
-      elevation: 0,
-      backgroundColor: Colors.transparent,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.horizontal(right: Radius.circular(28)),
-      ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.horizontal(right: Radius.circular(28)),
-        child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-          child: Container(
-            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.97),
-            child: SafeArea(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(22, 22, 18, 26),
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF061424), Color(0xFF1B3C73)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.only(
-                        bottomRight: Radius.circular(28),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.school_rounded,
-                              color: Colors.white,
-                              size: 32,
-                            ),
-                            const Spacer(),
-                            GelPress(
-                              child: IconButton(
-                                onPressed: () => Navigator.pop(context),
-                                icon: const Icon(
-                                  Icons.close_rounded,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 18),
-                        const Text(
-                          'TEC MÓVIL',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 2.5,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Tu formación,\nun mismo camino.',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            height: 1.2,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        const Text(
-                          'Tecnológico de Costa Rica',
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(22, 25, 18, 12),
-                    child: Text(
-                      'MENÚ PRINCIPAL',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                  ),
-                  _drawerTile(
-                    Icons.home_rounded,
-                    'Inicio',
-                    'Pantalla principal',
-                    0,
-                  ),
-                  _drawerTile(
-                    Icons.calendar_month_rounded,
-                    'Calendario',
-                    'Fechas académicas',
-                    1,
-                  ),
-                  _drawerTile(
-                    Icons.campaign_outlined,
-                    'Avisos',
-                    'Novedades y notificaciones',
-                    2,
-                  ),
-                  _drawerTile(
-                    Icons.person_outline_rounded,
-                    'Mi perfil',
-                    'Tu espacio personal',
-                    3,
-                  ),
-                  _drawerTile(
-                    Icons.menu_book_rounded,
-                    'Recursos',
-                    'Material de estudio',
-                    4,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Container(
-                      padding: const EdgeInsets.all(15),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Theme.of(context).colorScheme.surfaceContainerHigh
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.outlineVariant,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.account_balance_rounded,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: 25,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Escuela de Ingeniería en Producción Industrial',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                height: 1.4,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _drawerTile(IconData icon, String title, String subtitle, int index) {
-    final selected = selectedIndex == index;
-    final theme = Theme.of(context);
-    final dark = theme.brightness == Brightness.dark;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-      child: Material(
-        color: selected
-            ? dark
-                  ? theme.colorScheme.surfaceContainerHighest
-                  : const Color(0xFFE1EFFB)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(17),
-        child: GelPress(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(17),
-            onTap: () {
-              Navigator.pop(context);
-
-              if (index == 0) {
-                _goHome();
-                return;
-              }
-
-              if (index == 1) {
-                _openCalendar();
-                return;
-              }
-
-              if (index == 4) {
-                _showSnackbar('Recursos estudiantiles: próximamente');
-                return;
-              }
-
-              _navigateToSection(index);
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 260),
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(17),
-                border: Border.all(
-                  color: selected
-                      ? dark
-                            ? theme.colorScheme.outline
-                            : const Color(0xFFC8DFF2)
-                      : Colors.transparent,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 43,
-                    height: 43,
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? dark
-                                ? theme.colorScheme.primary
-                                : const Color(0xFF164B73)
-                          : dark
-                          ? theme.colorScheme.surfaceContainerHigh
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(
-                      icon,
-                      color: selected
-                          ? dark
-                                ? theme.colorScheme.onPrimary
-                                : Colors.white
-                          : dark
-                          ? theme.colorScheme.onSurfaceVariant
-                          : const Color(0xFF64748B),
-                    ),
-                  ),
-                  const SizedBox(width: 13),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: TextStyle(
-                            color: selected
-                                ? dark
-                                      ? theme.colorScheme.primary
-                                      : const Color(0xFF164B73)
-                                : dark
-                                ? theme.colorScheme.onSurface
-                                : const Color(0xFF061424),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          subtitle,
-                          style: TextStyle(
-                            color: dark
-                                ? theme.colorScheme.onSurfaceVariant
-                                : const Color(0xFF8290A2),
-                            fontSize: 10.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (selected)
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: dark
-                          ? theme.colorScheme.primary
-                          : const Color(0xFF164B73),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

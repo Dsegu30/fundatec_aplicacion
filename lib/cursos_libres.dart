@@ -19,6 +19,26 @@ const Color _accentBlue = Color(0xFF0EA5E9);
 class CursosLibresCatalogoPage extends StatefulWidget {
   const CursosLibresCatalogoPage({super.key});
 
+  static CursoLibreData detallePorId(String id) {
+    final curso = _CursosLibresCatalogoPageState._cursos.firstWhere(
+      (curso) => curso.idDetalle == id,
+      orElse: () => throw ArgumentError.value(id, 'id', 'Curso desconocido'),
+    );
+
+    return CursoLibreData(
+      id: curso.idDetalle,
+      nombre: curso.titulo,
+      categoria: curso.categoria,
+      tipo: 'Curso libre',
+      grupo: curso.niveles,
+      descripcion: curso.descripcion,
+      aspectos: [curso.niveles],
+      imagen: curso.imagen,
+      colores: curso.colores,
+      icono: curso.icono,
+    );
+  }
+
   @override
   State<CursosLibresCatalogoPage> createState() =>
       _CursosLibresCatalogoPageState();
@@ -292,18 +312,7 @@ class _CursosLibresCatalogoPageState extends State<CursosLibresCatalogoPage>
       context,
       appPageRoute<void>(
         builder: (_) => CursoDetallePage(
-          curso: CursoLibreData(
-            id: curso.idDetalle,
-            nombre: curso.titulo,
-            categoria: curso.categoria,
-            tipo: 'Curso libre',
-            grupo: curso.niveles,
-            descripcion: curso.descripcion,
-            aspectos: [curso.niveles],
-            imagen: curso.imagen,
-            colores: curso.colores,
-            icono: curso.icono,
-          ),
+          curso: CursosLibresCatalogoPage.detallePorId(curso.idDetalle),
         ),
       ),
     );

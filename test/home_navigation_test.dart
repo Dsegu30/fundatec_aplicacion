@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fundatec/app_theme.dart';
+import 'package:fundatec/curso_detalle.dart';
+import 'package:fundatec/cursos_libres.dart';
 import 'package:fundatec/home.dart';
 import 'package:fundatec/licenciatura.dart';
 import 'package:fundatec/navegacion_glass.dart';
 import 'package:fundatec/perfil.dart';
 import 'package:fundatec/posgrados.dart';
+import 'package:fundatec/tecnico_detalle.dart';
 
 void main() {
   test('el tema claro mantiene el fondo y colores predeterminados', () {
@@ -159,6 +162,59 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(LicenciaturaPage), findsOneWidget);
+  });
+
+  testWidgets('Home ya no muestra el menú ni la campana del encabezado', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: TecHomeScreen()));
+
+    expect(find.byIcon(Icons.menu_rounded), findsNothing);
+    expect(find.byIcon(Icons.notifications_none_rounded), findsNothing);
+  });
+
+  testWidgets('Home muestra solo Agendar cita y Noticias en acceso rápido', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: TecHomeScreen()));
+    await tester.scrollUntilVisible(find.text('Agendar cita'), 250);
+
+    expect(find.text('Agendar cita'), findsOneWidget);
+    expect(find.text('Noticias'), findsOneWidget);
+    expect(find.text('Calendario'), findsNothing);
+    expect(find.text('Recursos'), findsNothing);
+    expect(find.text('Mi Perfil'), findsNothing);
+  });
+
+  testWidgets('la búsqueda abre directamente el detalle del curso', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: TecHomeScreen()));
+
+    await tester.enterText(find.byType(TextField).first, 'Excel');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Excel'), findsOneWidget);
+    await tester.tap(find.text('Excel').last);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CursoDetallePage), findsOneWidget);
+    expect(find.byType(CursosLibresCatalogoPage), findsNothing);
+  });
+
+  testWidgets('Enter abre directamente el primer programa encontrado', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: TecHomeScreen()));
+
+    await tester.enterText(
+      find.byType(TextField).first,
+      'Logística e Inventarios',
+    );
+    tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TecnicoDetallePage), findsOneWidget);
   });
 
   testWidgets('Licenciatura muestra el resumen del programa', (
