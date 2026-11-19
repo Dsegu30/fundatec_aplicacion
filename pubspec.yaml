@@ -33,3 +33,10 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/tec_logo.png
+    - "assets/images/Cursos y especialidades.jpeg"
+    - assets/images/LogoPosgrados.jpeg
+    - assets/images/TECNICO.jpeg
+    - assets/images/Maestria_Calidad_Modalidad_Academica.png
+    - assets/images/Maestria_Calidad_Modalidad_Profesional.png
+    - assets/images/Maestria_Cadena_de_Abastecimiento.png
+    - assets/images/Maestria_Sistemas_Modernos_de_Manufactura.png

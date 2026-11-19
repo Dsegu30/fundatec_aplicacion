@@ -21,67 +21,52 @@ class PosgradosPage extends StatefulWidget {
 class _PosgradosPageState extends State<PosgradosPage> {
   static const Color primaryNavy = Color(0xFF061424);
   static const Color deepBlue = Color(0xFF0D233A);
+
   int selectedIndex = 0;
 
   final List<_PosgradoData> posgrados = const [
     _PosgradoData(
-      titulo: 'Doctorado Académico en Ingeniería',
-      descripcion: 'Desarrolla investigación avanzada, genera conocimiento y aporta soluciones innovadoras en el campo de la ingeniería.',
-      icono: Icons.engineering_outlined,
-      colores: [Color(0xFF102A43), Color(0xFF176B87)],
-      imagen: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&w=1500&q=92',
-      programa: _TipoPosgrado.doctoradoIngenieria,
-    ),
-    _PosgradoData(
       titulo: 'Maestría en Calidad Académica',
-      descripcion: 'Diseña modelos, instrumentos y estrategias para fortalecer la calidad y evaluación de las organizaciones.',
+      descripcion:
+          'Diseña modelos, instrumentos y estrategias para fortalecer la calidad y evaluación de las organizaciones.',
       icono: Icons.school_outlined,
       colores: [Color(0xFF17375E), Color(0xFF3977B8)],
-      imagen: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&w=1500&q=92',
+      imagen: 'assets/images/Maestria_Calidad_Modalidad_Academica.png',
       programa: _TipoPosgrado.calidadAcademica,
     ),
     _PosgradoData(
       titulo: 'Maestría en Calidad Profesional',
-      descripcion: 'Transforma la gestión de la calidad en resultados concretos y mejora continua para las organizaciones.',
+      descripcion:
+          'Transforma la gestión de la calidad en resultados concretos y mejora continua para las organizaciones.',
       icono: Icons.fact_check_outlined,
       colores: [Color(0xFF162D3D), Color(0xFF247B87)],
-      imagen: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=1500&q=92',
+      imagen: 'assets/images/Maestria_Calidad_Modalidad_Profesional.png',
       programa: _TipoPosgrado.calidadProfesional,
     ),
     _PosgradoData(
       titulo: 'Maestría en Cadena de Abastecimiento',
-      descripcion: 'Especialízate en logística, planificación y gestión eficiente de las cadenas de suministro.',
+      descripcion:
+          'Especialízate en logística, planificación y gestión eficiente de las cadenas de suministro.',
       icono: Icons.local_shipping_outlined,
       colores: [Color(0xFF182848), Color(0xFF315C91)],
-      imagen: 'https://images.unsplash.com/photo-1773399881946-8371e1c538d9?auto=format&fit=crop&w=1500&q=92',
+      imagen: 'assets/images/Maestria_Cadena_de_Abastecimiento.png',
       programa: _TipoPosgrado.cadenaAbastecimiento,
     ),
     _PosgradoData(
       titulo: 'Maestría en Sistemas Modernos de Manufactura',
-      descripcion: 'Aprende sobre tecnologías modernas, automatización y optimización de procesos de manufactura.',
+      descripcion:
+          'Aprende sobre tecnologías modernas, automatización y optimización de procesos de manufactura.',
       icono: Icons.precision_manufacturing_outlined,
       colores: [Color(0xFF162D3D), Color(0xFF247B87)],
-      imagen: 'https://images.unsplash.com/photo-1647427060118-4911c9821b82?auto=format&fit=crop&w=1500&q=92',
+      imagen: 'assets/images/Maestria_Sistemas_Modernos_de_Manufactura.png',
       programa: _TipoPosgrado.sistemasModernosManufactura,
     ),
   ];
 
   Widget _detalleDe(_PosgradoData posgrado) {
     return switch (posgrado.programa) {
-      _TipoPosgrado.doctoradoIngenieria => PosgradoDetallePage(
-        titulo: posgrado.titulo,
-        resumenHero: posgrado.descripcion,
-        enfoque: posgrado.descripcion,
-        areas: const [
-          'Consulta con la coordinación las líneas de investigación y el proceso de admisión.',
-          'Solicita información actualizada sobre requisitos, duración y modalidad.',
-        ],
-        idealPara:
-            'Personas interesadas en desarrollar investigación avanzada en '
-            'el campo de la ingeniería.',
-        colores: posgrado.colores,
-      ),
-      _TipoPosgrado.calidadAcademica => const MaestriaCalidadAcademicaPage(),
+      _TipoPosgrado.calidadAcademica =>
+        const MaestriaCalidadAcademicaPage(),
       _TipoPosgrado.calidadProfesional =>
         const MaestriaCalidadProfesionalPage(),
       _TipoPosgrado.cadenaAbastecimiento =>
@@ -161,26 +146,43 @@ class _PosgradosPageState extends State<PosgradosPage> {
     return Builder(
       builder: (context) {
         final size = MediaQuery.sizeOf(context);
-        final compactLandscape = size.width > size.height && size.height < 600;
+
+        final compactLandscape =
+            size.width > size.height && size.height < 600;
+
         final horizontalInset = size.width < 360 ? 14.0 : 20.0;
+
         final hinge = ResponsiveLayout.verticalHinge(context);
-        final availableGridWidth = size.width - horizontalInset * 2;
-        final columns = hinge != null || availableGridWidth >= 720 ? 2 : 1;
+
+        final availableGridWidth =
+            size.width - horizontalInset * 2;
+
+        final columns =
+            hinge != null || availableGridWidth >= 720 ? 2 : 1;
+
         final rowCount = (posgrados.length / columns).ceil();
-        final rowSpacing = compactLandscape ? 12.0 : 20.0;
-        final gridTopInset = compactLandscape ? 12.0 : 18.0;
-        final gridBottomInset = compactLandscape ? 12.0 : 18.0;
-        final minimumCardHeight = columns == 1 ? 120.0 : 150.0;
+
+        final rowSpacing = compactLandscape ? 12.0 : 16.0;
+
+        final gridTopInset = compactLandscape ? 12.0 : 16.0;
+
+        final gridBottomInset = compactLandscape ? 12.0 : 16.0;
+
+        final textScale = MediaQuery.textScalerOf(context).scale(1);
+        final minimumCardHeight =
+            (columns == 1 ? 135.0 : 150.0) * textScale;
 
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: Stack(
             children: [
               const FondoAppDifuminado(),
+
               SafeArea(
                 child: Column(
                   children: [
                     _construirEncabezado(compactLandscape),
+
                     Expanded(
                       child: LayoutBuilder(
                         builder: (context, constraints) {
@@ -189,12 +191,11 @@ class _PosgradosPageState extends State<PosgradosPage> {
                               gridTopInset -
                               gridBottomInset -
                               rowSpacing * (rowCount - 1);
-                          final cardHeight = math
-                              .max(
-                                minimumCardHeight,
-                                availableCardSpace / rowCount,
-                              )
-                              .toDouble();
+
+                          final cardHeight = math.max(
+                            minimumCardHeight,
+                            availableCardSpace / rowCount,
+                          ).toDouble();
 
                           return SingleChildScrollView(
                             physics: const BouncingScrollPhysics(),
@@ -221,6 +222,7 @@ class _PosgradosPageState extends State<PosgradosPage> {
                         },
                       ),
                     ),
+
                     _construirNavegacionInferior(),
                   ],
                 ),
@@ -245,7 +247,11 @@ class _PosgradosPageState extends State<PosgradosPage> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [primaryNavy, deepBlue, Color(0xFF1B3C73)],
+          colors: [
+            primaryNavy,
+            deepBlue,
+            Color(0xFF1B3C73),
+          ],
         ),
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(30),
@@ -259,6 +265,7 @@ class _PosgradosPageState extends State<PosgradosPage> {
             onDarkBackground: true,
             onPressed: () => Navigator.of(context).maybePop(),
           ),
+
           const Text(
             'Posgrados',
             style: TextStyle(
@@ -268,10 +275,16 @@ class _PosgradosPageState extends State<PosgradosPage> {
               letterSpacing: -0.5,
             ),
           ),
+
           const SizedBox(height: 6),
+
           const Text(
             'Descubre nuevas oportunidades para especializarte y avanzar profesionalmente.',
-            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+              height: 1.4,
+            ),
           ),
         ],
       ),
@@ -288,18 +301,23 @@ class _PosgradosPageState extends State<PosgradosPage> {
         child: InkWell(
           onTap: () {
             HapticFeedback.selectionClick();
-            Navigator.of(context)
-                .push(appPageRoute<void>(builder: (_) => _detalleDe(posgrado)));
+
+            Navigator.of(context).push(
+              appPageRoute<void>(
+                builder: (_) => _detalleDe(posgrado),
+              ),
+            );
           },
           borderRadius: BorderRadius.circular(radio),
           child: Container(
-            height: 178,
+            width: double.infinity,
+            height: double.infinity,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(radio),
               gradient: LinearGradient(
                 colors: posgrado.colores,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
               ),
               boxShadow: [
                 BoxShadow(
@@ -314,20 +332,46 @@ class _PosgradosPageState extends State<PosgradosPage> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
+                  // Imagen ubicada en el lado derecho.
                   Positioned.fill(
-                    child: Opacity(
-                      opacity: 0.68,
-                      child: Image.network(
-                        posgrado.imagen,
-                        fit: BoxFit.cover,
-                        filterQuality: FilterQuality.high,
-                        alignment: Alignment.centerRight,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const SizedBox.shrink();
-                        },
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: FractionallySizedBox(
+                        widthFactor: 0.9,
+                        heightFactor: 1,
+                        child: ShaderMask(
+                          blendMode: BlendMode.dstIn,
+                          shaderCallback: (bounds) {
+                            return const LinearGradient(
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                              colors: [
+                                Colors.transparent,
+                                Color(0x66FFFFFF),
+                                Color(0xE6FFFFFF),
+                              ],
+                              stops: [0.0, 0.22, 1.0],
+                            ).createShader(bounds);
+                          },
+                          child: Image.asset(
+                            posgrado.imagen,
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.cover,
+                            alignment: Alignment.topCenter,
+                            filterQuality: FilterQuality.high,
+                            color: Colors.white.withValues(alpha: 0.58),
+                            colorBlendMode: BlendMode.softLight,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const SizedBox.shrink();
+                            },
+                          ),
+                        ),
                       ),
                     ),
                   ),
+
+                  // Degradado para integrar la imagen con el fondo.
                   Positioned.fill(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
@@ -335,15 +379,17 @@ class _PosgradosPageState extends State<PosgradosPage> {
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                           colors: [
-                            posgrado.colores.first.withValues(alpha: 0.82),
-                            posgrado.colores.first.withValues(alpha: 0.58),
-                            posgrado.colores.last.withValues(alpha: 0.16),
+                            posgrado.colores.first.withValues(alpha: 0.98),
+                            posgrado.colores.first.withValues(alpha: 0.86),
+                            posgrado.colores.last.withValues(alpha: 0.38),
                           ],
-                          stops: const [0.0, 0.38, 1.0],
+                          stops: const [0.0, 0.48, 1.0],
                         ),
                       ),
                     ),
                   ),
+
+                  // Decoración de fondo.
                   Positioned(
                     top: -35,
                     right: 45,
@@ -356,16 +402,23 @@ class _PosgradosPageState extends State<PosgradosPage> {
                       ),
                     ),
                   ),
+
+                  // Texto e icono.
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 10, 47, 10),
+                    padding: const EdgeInsets.fromLTRB(
+                      14,
+                      10,
+                      45,
+                      10,
+                    ),
                     child: Row(
                       children: [
                         Container(
-                          width: 53,
-                          height: 53,
+                          width: 45,
+                          height: 45,
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.14),
-                            borderRadius: BorderRadius.circular(17),
+                            borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                               color: Colors.white.withValues(alpha: 0.3),
                             ),
@@ -373,10 +426,12 @@ class _PosgradosPageState extends State<PosgradosPage> {
                           child: Icon(
                             posgrado.icono,
                             color: Colors.white,
-                            size: 28,
+                            size: 24,
                           ),
                         ),
-                        const SizedBox(width: 13),
+
+                        const SizedBox(width: 11),
+
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -393,7 +448,9 @@ class _PosgradosPageState extends State<PosgradosPage> {
                                   height: 1.18,
                                 ),
                               ),
-                              const SizedBox(height: 6),
+
+                              const SizedBox(height: 5),
+
                               Text(
                                 posgrado.descripcion,
                                 maxLines: 3,
@@ -401,7 +458,7 @@ class _PosgradosPageState extends State<PosgradosPage> {
                                 style: const TextStyle(
                                   color: Colors.white70,
                                   fontSize: 11.5,
-                                  height: 1.35,
+                                  height: 1.3,
                                 ),
                               ),
                             ],
@@ -410,6 +467,8 @@ class _PosgradosPageState extends State<PosgradosPage> {
                       ],
                     ),
                   ),
+
+                  // Botón de avanzar.
                   Positioned(
                     right: 12,
                     bottom: 12,
@@ -467,7 +526,6 @@ class _PosgradoData {
 }
 
 enum _TipoPosgrado {
-  doctoradoIngenieria,
   calidadAcademica,
   calidadProfesional,
   cadenaAbastecimiento,

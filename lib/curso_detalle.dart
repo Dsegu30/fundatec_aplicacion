@@ -1073,16 +1073,16 @@ class _CursoData {
 
 /// Pantalla independiente para cada curso libre.
 /// Cada tarjeta envía su propio objeto _CursoData a esta página.
-class CursoLibreDetallePage extends StatefulWidget {
+class _CursoLibreDetallePage extends StatefulWidget {
   final _CursoData curso;
 
-  const CursoLibreDetallePage({super.key, required this.curso});
+  const _CursoLibreDetallePage({required this.curso});
 
   @override
-  State<CursoLibreDetallePage> createState() => _CursoLibreDetallePageState();
+  State<_CursoLibreDetallePage> createState() => _CursoLibreDetallePageState();
 }
 
-class _CursoLibreDetallePageState extends State<CursoLibreDetallePage>
+class _CursoLibreDetallePageState extends State<_CursoLibreDetallePage>
     with SingleTickerProviderStateMixin {
   int selectedIndex = 0;
   late final AnimationController _controller;

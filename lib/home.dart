@@ -25,6 +25,7 @@ import 'posgrados.dart';
 import 'navegacion_glass.dart';
 import 'responsive_layout.dart';
 import 'cursos_libres.dart';
+import 'cursos_especialidades.dart';
 import 'curso_detalle.dart';
 import 'especialidades.dart';
 import 'especialidad_detalle.dart';
@@ -323,7 +324,6 @@ class _TecHomeScreenState extends State<TecHomeScreen>
   static const Color deepBlue = Color(0xFF0D233A);
   static const Color accentTeal = Color(0xFF0EA5E9);
   static const Color accentPurple = Color(0xFF6366F1);
-  static const Color alertRed = Color(0xFFEF4444);
 
   final ScrollController _homeScrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
@@ -340,7 +340,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
 
   late final List<AppSearchItem> _searchItems = [
     AppSearchItem(
-      title: 'Técnico en Calidad',
+      title: 'Técnico Industrial',
       subtitle: 'Control, mejora y aseguramiento de la calidad industrial.',
       icon: Icons.verified_outlined,
       category: 'Académico',
@@ -385,13 +385,15 @@ class _TecHomeScreenState extends State<TecHomeScreen>
       onTap: () => _navigateToPage(
         (_) => const PosgradoDetallePage(
           titulo: 'Doctorado Académico en Ingeniería',
-          resumenHero:
+          numeroPrograma: null,
+          etiquetaPrograma: 'DOCTORADO ACADÉMICO · POSGRADOS INDUSTRIAL',
+          descripcion:
               'Investigación avanzada para generar conocimiento y aportar '
               'soluciones innovadoras en ingeniería.',
           enfoque:
               'Desarrolla investigación avanzada, genera conocimiento y '
               'aporta soluciones innovadoras en el campo de la ingeniería.',
-          areas: [
+          areasFormacion: [
             'Consulta con la coordinación las líneas de investigación y el '
                 'proceso de admisión.',
             'Solicita información actualizada sobre requisitos, duración y '
@@ -400,6 +402,11 @@ class _TecHomeScreenState extends State<TecHomeScreen>
           idealPara:
               'Personas interesadas en desarrollar investigación avanzada en '
               'el campo de la ingeniería.',
+          idealSiQueres:
+              'Desarrollar investigación avanzada y generar conocimiento '
+              'aplicado en ingeniería.',
+          imagen:
+              'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=1600&q=85',
           colores: [Color(0xFF102A43), Color(0xFF176B87)],
         ),
       ),
@@ -450,6 +457,13 @@ class _TecHomeScreenState extends State<TecHomeScreen>
       icon: Icons.menu_book_rounded,
       category: 'Académico',
       onTap: _openCursosLibres,
+    ),
+    AppSearchItem(
+      title: 'Especialidades y Cursos Industriales',
+      subtitle: 'Elige entre cursos libres y especialidades industriales.',
+      icon: Icons.engineering_rounded,
+      category: 'Académico',
+      onTap: _openCursosEspecialidades,
     ),
     AppSearchItem(
       title: 'Excel',
@@ -767,6 +781,9 @@ class _TecHomeScreenState extends State<TecHomeScreen>
 
   void _openCursosLibres() =>
       _navigateToPage((context) => const CursosLibresCatalogoPage());
+
+  void _openCursosEspecialidades() =>
+      _navigateToPage((_) => const CursosEspecialidadesPage());
 
   void _openNews() => _navigateToPage((_) => const NoticiasPage());
 
@@ -1867,35 +1884,29 @@ class _TecHomeScreenState extends State<TecHomeScreen>
   }
 
   // ==========================================================
-  // TARJETAS ACADÉMICAS
+  // TARJETAS ACADÉMICAS / NOMBRES
   // ==========================================================
 
   Widget _buildMainCards({required bool wide, required bool compact}) {
     final cards = [
       _MainCardData(
         gradientColors: [const Color(0xFF061424), const Color(0xFF2878B5)],
-        icon: Icons.menu_book_rounded,
-        title: 'Cursos Libres',
-        description: 'Explora cursos libres para ampliar tus conocimientos y desarrollar nuevas habilidades.',
-        imageUrl: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&w=1600&q=95',
-        onTap: _openCursosLibres,
-      ),
-      _MainCardData(
-        gradientColors: [const Color(0xFF343A40), alertRed],
         icon: Icons.engineering_rounded,
-        title: 'Especialidades\nIndustriales',
-        description: 'Conoce las especialidades industriales y las opciones de formación disponibles.',
-        imageUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&w=1600&q=95',
-        onTap: _openEspecialidades,
+        title: 'Especialidades y\nCursos Industrial',
+        description: 'Explora cursos cortos y especialidades industrial en un solo lugar.',
+        imageUrl: 'assets/images/Cursos y especialidades.jpeg',
+        onTap: _openCursosEspecialidades,
       ),
+
       _MainCardData(
         gradientColors: [deepBlue, const Color(0xFF1B3C73)],
         icon: Icons.verified_outlined,
-        title: 'Técnico en\nCalidad',
+        title: 'Técnico Industrial',
         description: 'Desarrolla tus habilidades en control, mejora y aseguramiento de la calidad industrial.',
-        imageUrl: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1600&q=95',
+        imageUrl: 'assets/images/TECNICO.jpeg',
         onTap: _openTecnicos,
       ),
+
       _MainCardData(
         gradientColors: [const Color(0xFF0D9488), const Color(0xFF14B8A6)],
         icon: Icons.workspace_premium_rounded,
@@ -1904,12 +1915,13 @@ class _TecHomeScreenState extends State<TecHomeScreen>
         imageUrl: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1600&q=95',
         onTap: _openLicenciatura,
       ),
+
       _MainCardData(
         gradientColors: [accentPurple, const Color(0xFF4E46B4)],
         icon: Icons.school_outlined,
         title: 'Posgrados\nIndustrial',
         description: 'Lleva tu conocimiento al siguiente nivel con programas de posgrado especializados.',
-        imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1600&q=95',
+        imageUrl: 'assets/images/LogoPosgrados.jpeg',
         onTap: _openPosgrados,
       ),
     ];
@@ -1918,16 +1930,26 @@ class _TecHomeScreenState extends State<TecHomeScreen>
       builder: (context, constraints) {
         final availableWidth = constraints.maxWidth;
         final displaySize = MediaQuery.sizeOf(context);
-        final verticalHinge = ResponsiveLayout.verticalHinge(context);
-        final columnSpacing = ResponsiveLayout.spacingFor(context, minimum: 15);
-        final columns = ResponsiveLayout.columnsForWidth(
-          availableWidth,
-          hinge: verticalHinge,
-          threeColumnMinWidth: 1050,
-          twoColumnMinWidth: 570,
-        );
         final shortLandscape =
             displaySize.width > displaySize.height && displaySize.height < 600;
+
+        // Cuatro columnas en escritorio ancho; tres en escritorio mediano,
+        // dos en tablet y una en móvil.
+        final hinge = ResponsiveLayout.verticalHinge(context);
+        final int columns;
+        if (hinge != null) {
+          columns = 2;
+        } else if (availableWidth >= 1450) {
+          columns = 4;
+        } else if (availableWidth >= 1050) {
+          columns = 3;
+        } else if (availableWidth >= 570) {
+          columns = 2;
+        } else {
+          columns = 1;
+        }
+
+        final spacing = ResponsiveLayout.spacingFor(context, minimum: 15);
         final cardHeight = shortLandscape ? 148.0 : 190.0;
         final singleColumnHeight = compact ? 136.0 : 154.0;
 
@@ -1942,83 +1964,13 @@ class _TecHomeScreenState extends State<TecHomeScreen>
           );
         }
 
-        if (columns == 3) {
-          return Column(
-            children: [
-              Row(
-                children: [
-                  for (var i = 0; i < 3; i++) ...[
-                    if (i > 0) const SizedBox(width: 15),
-                    Expanded(
-                      child: _buildProCard(
-                        data: cards[i],
-                        height: cardHeight,
-                        wide: true,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 15),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: _buildProCard(
-                      data: cards[3],
-                      height: cardHeight,
-                      wide: true,
-                    ),
-                  ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    flex: 2,
-                    child: _buildProCard(
-                      data: cards[4],
-                      height: cardHeight,
-                      wide: true,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          );
-        }
-
-        if (columns == 2) {
-          Widget buildGridCard(int index) =>
-              _buildProCard(data: cards[index], height: cardHeight, wide: true);
-
-          return Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(child: buildGridCard(0)),
-                  SizedBox(width: columnSpacing),
-                  Expanded(child: buildGridCard(1)),
-                ],
-              ),
-              const SizedBox(height: 15),
-              Row(
-                children: [
-                  Expanded(child: buildGridCard(2)),
-                  SizedBox(width: columnSpacing),
-                  Expanded(child: buildGridCard(3)),
-                ],
-              ),
-              const SizedBox(height: 15),
-              buildGridCard(4),
-            ],
-          );
-        }
-
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: cards.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
-            crossAxisSpacing: 15,
+            crossAxisSpacing: spacing,
             mainAxisSpacing: 15,
             mainAxisExtent: cardHeight,
           ),
@@ -2040,6 +1992,7 @@ class _TecHomeScreenState extends State<TecHomeScreen>
     bool wide = false,
   }) {
     final cardRadius = BorderRadius.circular(26);
+    final isPosgradosLogo = data.imageUrl == 'assets/images/LogoPosgrados.jpeg';
 
     return GelPress(
       child: Semantics(
@@ -2082,36 +2035,54 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                       Positioned.fill(
                         child: Align(
                           alignment: Alignment.centerRight,
-                          child: SizedBox(
-                            width: wide ? 230 : 205,
+                          child: FractionallySizedBox(
+                            widthFactor: 0.9,
                             child: ShaderMask(
                               blendMode: BlendMode.dstIn,
                               shaderCallback: (bounds) {
-                                return const LinearGradient(
+                                return LinearGradient(
                                   begin: Alignment.centerLeft,
                                   end: Alignment.centerRight,
                                   colors: [
                                     Colors.transparent,
-                                    Color(0x33FFFFFF),
-                                    Color(0xBFFFFFFF),
+                                    Color(0x66FFFFFF),
+                                    Color(0xE6FFFFFF),
                                   ],
-                                  stops: [0, 0.32, 1],
+                                  stops: const [0, 0.22, 1],
                                 ).createShader(bounds);
                               },
-                              child: Image.network(
-                                data.imageUrl,
-                                fit: BoxFit.cover,
-                                filterQuality: FilterQuality.high,
-                                alignment: Alignment.center,
-                                color: Colors.white.withValues(alpha: 0.58),
-                                colorBlendMode: BlendMode.softLight,
-                                errorBuilder: (_, _, _) =>
-                                    const SizedBox.shrink(),
-                                loadingBuilder: (context, child, progress) {
-                                  if (progress == null) return child;
-                                  return const SizedBox.shrink();
-                                },
-                              ),
+                              child: data.imageUrl.startsWith('assets/')
+                                  ? Image.asset(
+                                      data.imageUrl,
+                                      fit: isPosgradosLogo
+                                          ? BoxFit.contain
+                                          : BoxFit.cover,
+                                      filterQuality: FilterQuality.high,
+                                      alignment: isPosgradosLogo
+                                          ? Alignment.centerRight
+                                          : Alignment.center,
+                                      color: Colors.white.withValues(
+                                        alpha: 0.58,
+                                      ),
+                                      colorBlendMode: BlendMode.softLight,
+                                    )
+                                  : Image.network(
+                                      data.imageUrl,
+                                      fit: BoxFit.cover,
+                                      filterQuality: FilterQuality.high,
+                                      alignment: Alignment.center,
+                                      color: Colors.white.withValues(
+                                        alpha: 0.58,
+                                      ),
+                                      colorBlendMode: BlendMode.softLight,
+                                      errorBuilder: (_, _, _) =>
+                                          const SizedBox.shrink(),
+                                      loadingBuilder:
+                                          (context, child, progress) {
+                                            if (progress == null) return child;
+                                            return const SizedBox.shrink();
+                                          },
+                                    ),
                             ),
                           ),
                         ),
@@ -2124,13 +2095,13 @@ class _TecHomeScreenState extends State<TecHomeScreen>
                               end: Alignment.centerRight,
                               colors: [
                                 data.gradientColors.first.withValues(
-                                  alpha: 0.99,
+                                  alpha: 0.98,
                                 ),
                                 data.gradientColors.first.withValues(
-                                  alpha: 0.91,
+                                  alpha: 0.86,
                                 ),
                                 data.gradientColors.last.withValues(
-                                  alpha: 0.48,
+                                  alpha: 0.38,
                                 ),
                               ],
                               stops: const [0, 0.48, 1],

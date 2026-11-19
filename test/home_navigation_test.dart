@@ -4,14 +4,183 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fundatec/app_theme.dart';
 import 'package:fundatec/curso_detalle.dart';
 import 'package:fundatec/cursos_libres.dart';
+import 'package:fundatec/cursos_especialidades.dart';
+import 'package:fundatec/especialidades.dart';
 import 'package:fundatec/home.dart';
 import 'package:fundatec/licenciatura.dart';
 import 'package:fundatec/navegacion_glass.dart';
 import 'package:fundatec/perfil.dart';
 import 'package:fundatec/posgrados.dart';
+import 'package:fundatec/posgrados_detalle.dart';
 import 'package:fundatec/tecnico_detalle.dart';
 
 void main() {
+  testWidgets('el selector ofrece cursos libres y especialidades', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: CursosEspecialidadesPage()),
+    );
+
+    expect(find.text('Especialidades y Cursos Industriales'), findsOneWidget);
+    expect(find.text('Cursos libres'), findsOneWidget);
+    expect(find.text('Especialidades industriales'), findsOneWidget);
+    for (final key in const [
+      ValueKey('selector-cursos-libres'),
+      ValueKey('selector-especialidades'),
+    ]) {
+      expect(
+        find.descendant(of: find.byKey(key), matching: find.byType(GelPress)),
+        findsOneWidget,
+      );
+    }
+  });
+
+  testWidgets('el acceso de Home abre Especialidades y Cursos Industriales', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: TecHomeScreen()));
+    final acceso = find.text('Especialidades y Cursos Industriales');
+    await tester.ensureVisible(acceso);
+    await tester.tap(acceso);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CursosEspecialidadesPage), findsOneWidget);
+    expect(find.text('Especialidades y Cursos Industriales'), findsOneWidget);
+  });
+
+  testWidgets('el selector se adapta a celular, tablet y laptop', (
+    WidgetTester tester,
+  ) async {
+    const sizes = [Size(280, 600), Size(884, 344), Size(1366, 768)];
+
+    for (final size in sizes) {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      await tester.pumpWidget(
+        const MaterialApp(home: CursosEspecialidadesPage()),
+      );
+      await tester.pumpAndSettle();
+
+      for (final key in const [
+        ValueKey('selector-cursos-libres'),
+        ValueKey('selector-especialidades'),
+      ]) {
+        expect(
+          tester.getSize(find.byKey(key)).width,
+          lessThanOrEqualTo(size.width),
+        );
+      }
+      if (size.width >= 1200) {
+        expect(
+          tester
+              .getSize(find.byKey(const ValueKey('selector-cursos-libres')))
+              .width,
+          greaterThan(600),
+        );
+        final cardCenter = tester
+            .getRect(find.byKey(const ValueKey('selector-cursos-libres')))
+            .center
+            .dy;
+        final contentStart = tester
+            .getRect(find.text('Elige qué tipo de formación quieres explorar.'))
+            .bottom;
+        final navigationStart = tester
+            .getRect(find.byType(NavegacionGlass))
+            .top;
+        expect(
+          (cardCenter - (contentStart + navigationStart) / 2).abs(),
+          lessThan(90),
+        );
+      }
+      if (size.width > size.height && size.height < 600) {
+        expect(
+          tester
+              .getSize(find.byKey(const ValueKey('selector-cursos-libres')))
+              .height,
+          lessThan(200),
+        );
+      }
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'Tamaño de pantalla: $size',
+      );
+    }
+
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+  });
+
+  testWidgets('el catálogo de especialidades se adapta a varias pantallas', (
+    WidgetTester tester,
+  ) async {
+    const sizes = [Size(280, 600), Size(884, 344), Size(1366, 768)];
+
+    for (final size in sizes) {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      await tester.pumpWidget(
+        const MaterialApp(home: EspecialidadesIndustrialesPage()),
+      );
+      await tester.pump(const Duration(milliseconds: 400));
+
+      var exception = tester.takeException();
+      while (exception is NetworkImageLoadException) {
+        exception = tester.takeException();
+      }
+      expect(exception, isNull, reason: 'Tamaño de pantalla: $size');
+    }
+
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+  });
+
+  testWidgets('el selector conserva el diseño con texto ampliado', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: const CursosEspecialidadesPage(),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: const TextScaler.linear(1.5)),
+          child: child!,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('la opción de cursos abre el catálogo de cursos libres', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: CursosEspecialidadesPage()),
+    );
+    await tester.tap(find.byKey(const ValueKey('selector-cursos-libres')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CursosLibresCatalogoPage), findsOneWidget);
+  });
+
+  testWidgets('la opción de especialidades abre su catálogo', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: CursosEspecialidadesPage()),
+    );
+    await tester.tap(find.byKey(const ValueKey('selector-especialidades')));
+    await tester.pumpAndSettle();
+    expect(find.byType(EspecialidadesIndustrialesPage), findsOneWidget);
+  });
+
   test('el tema claro mantiene el fondo y colores predeterminados', () {
     final theme = buildAppTheme(Brightness.light);
 
@@ -162,6 +331,22 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(LicenciaturaPage), findsOneWidget);
+  });
+
+  testWidgets('la búsqueda de Doctorado abre sus detalles', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: TecHomeScreen()));
+    await tester.enterText(find.byType(TextField).first, 'Doctorado Académico');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Doctorado Académico en Ingeniería').last);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PosgradoDetallePage), findsOneWidget);
+    expect(
+      find.text('DOCTORADO ACADÉMICO · POSGRADOS INDUSTRIAL'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Home ya no muestra el menú ni la campana del encabezado', (
